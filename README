@@ -1,0 +1,9 @@
+VSP Manager Interface driver
+=====
+The driver, VSP Manager Interface, connects kernel and user space.
+
+Dependencies:
+-------------
+
+ * vspm_drv
+
