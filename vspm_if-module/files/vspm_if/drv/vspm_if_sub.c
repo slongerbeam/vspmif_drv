@@ -843,7 +843,7 @@ int set_fdp_par(
 }
 
 static int set_compat_vsp_src_clut_par(
-	struct vspm_entry_vsp_in_clut *clut, unsigned int *src)
+	struct vspm_entry_vsp_in_clut *clut, unsigned int src)
 {
 	struct compat_vsp_dl_t compat_dl_par;
 	dma_addr_t hard_addr;
@@ -852,13 +852,13 @@ static int set_compat_vsp_src_clut_par(
 	/* copy */
 	if (copy_from_user(
 			&compat_dl_par,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_dl_t))) {
 		EPRINT("failed to copy of vsp_dl_t\n");
 		return -EFAULT;
 	}
 
-	if ((compat_dl_par.virt_addr != NULL) &&
+	if ((compat_dl_par.virt_addr != 0) &&
 		(compat_dl_par.tbl_num > 0) &&
 		(compat_dl_par.tbl_num <= 256)) {
 		/* allocate memory */
@@ -875,7 +875,7 @@ static int set_compat_vsp_src_clut_par(
 		/* copy color table */
 		if (copy_from_user(
 				virt_addr,
-				(void __user *)compat_dl_par.virt_addr,
+				VSPM_IF_INT_TO_UP(compat_dl_par.virt_addr),
 				compat_dl_par.tbl_num * 8)) {
 			EPRINT("failed to copy color table\n");
 			dma_free_coherent(
@@ -899,14 +899,14 @@ static int set_compat_vsp_src_clut_par(
 }
 
 static int set_compat_vsp_irop_par(
-	struct vsp_irop_unit_t *irop, unsigned int *src)
+	struct vsp_irop_unit_t *irop, unsigned int src)
 {
 	struct compat_vsp_irop_unit_t compat_irop;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_irop,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_irop_unit_t))) {
 		EPRINT("failed to copy of vsp_irop_unit_t\n");
 		return -EFAULT;
@@ -924,14 +924,14 @@ static int set_compat_vsp_irop_par(
 }
 
 static int set_compat_vsp_ckey_par(
-	struct vsp_ckey_unit_t *ckey, unsigned int *src)
+	struct vsp_ckey_unit_t *ckey, unsigned int src)
 {
 	struct compat_vsp_ckey_unit_t compat_ckey;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_ckey,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_ckey_unit_t))) {
 		EPRINT("failed to copy of vsp_ckey_unit_t\n");
 		return -EFAULT;
@@ -946,7 +946,7 @@ static int set_compat_vsp_ckey_par(
 }
 
 static int set_compat_vsp_src_alpha_par(
-	struct vspm_entry_vsp_in_alpha *alpha, unsigned int *src)
+	struct vspm_entry_vsp_in_alpha *alpha, unsigned int src)
 {
 	struct compat_vsp_alpha_unit_t compat_alpha;
 	int ercd;
@@ -954,13 +954,13 @@ static int set_compat_vsp_src_alpha_par(
 	/* copy vsp_alpha_unit_t parameter */
 	if (copy_from_user(
 			&compat_alpha,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_alpha_unit_t))) {
 		EPRINT("failed to copy of vsp_alpha_unit_t\n");
 		return -EFAULT;
 	}
 
-	alpha->alpha.addr_a = (void *)compat_alpha.addr_a;
+	alpha->alpha.addr_a = VSPM_IF_INT_TO_VP(compat_alpha.addr_a);
 	alpha->alpha.stride_a = compat_alpha.stride_a;
 	alpha->alpha.swap = compat_alpha.swap;
 	alpha->alpha.asel = compat_alpha.asel;
@@ -989,7 +989,7 @@ static int set_compat_vsp_src_alpha_par(
 	if (compat_alpha.mult) {
 		if (copy_from_user(
 				&alpha->mult,
-				(void __user *)compat_alpha.mult,
+				VSPM_IF_INT_TO_UP(compat_alpha.mult),
 				sizeof(struct vsp_mult_unit_t))) {
 			EPRINT("failed to copy of vsp_mult_unit_t\n");
 			return -EFAULT;
@@ -1001,7 +1001,7 @@ static int set_compat_vsp_src_alpha_par(
 }
 
 static int set_compat_vsp_src_par(
-	struct vspm_entry_vsp_in *in, unsigned int *src)
+	struct vspm_entry_vsp_in *in, unsigned int src)
 {
 	struct compat_vsp_src_t compat_vsp_src;
 	int ercd;
@@ -1009,15 +1009,15 @@ static int set_compat_vsp_src_par(
 	/* copy vsp_src_t parameter */
 	if (copy_from_user(
 			&compat_vsp_src,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_src_t))) {
 		EPRINT("failed to copy of vsp_src_t\n");
 		return -EFAULT;
 	}
 
-	in->in.addr = (void *)compat_vsp_src.addr;
-	in->in.addr_c0 = (void *)compat_vsp_src.addr_c0;
-	in->in.addr_c1 = (void *)compat_vsp_src.addr_c1;
+	in->in.addr = VSPM_IF_INT_TO_VP(compat_vsp_src.addr);
+	in->in.addr_c0 = VSPM_IF_INT_TO_VP(compat_vsp_src.addr_c0);
+	in->in.addr_c1 = VSPM_IF_INT_TO_VP(compat_vsp_src.addr_c1);
 	in->in.stride = compat_vsp_src.stride;
 	in->in.stride_c = compat_vsp_src.stride_c;
 	in->in.width = compat_vsp_src.width;
@@ -1061,14 +1061,14 @@ static int set_compat_vsp_src_par(
 	return 0;
 }
 
-static int set_compat_fcp_par(struct fcp_info_t *fcp_info, unsigned int *src)
+static int set_compat_fcp_par(struct fcp_info_t *fcp_info, unsigned int src)
 {
 	struct compat_fcp_info_t compat_fcp_info;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_fcp_info,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_fcp_info_t))) {
 		EPRINT("failed to copy of fcp_info_t\n");
 		return -EFAULT;
@@ -1080,20 +1080,20 @@ static int set_compat_fcp_par(struct fcp_info_t *fcp_info, unsigned int *src)
 	fcp_info->pos_y = compat_fcp_info.pos_y;
 	fcp_info->pos_c = compat_fcp_info.pos_c;
 	fcp_info->stride_div16 = compat_fcp_info.stride_div16;
-	fcp_info->ba_anc_prev_y = (void *)compat_fcp_info.ba_anc_prev_y;
-	fcp_info->ba_anc_cur_y = (void *)compat_fcp_info.ba_anc_cur_y;
-	fcp_info->ba_anc_next_y = (void *)compat_fcp_info.ba_anc_next_y;
-	fcp_info->ba_anc_cur_c = (void *)compat_fcp_info.ba_anc_cur_c;
-	fcp_info->ba_ref_prev_y = (void *)compat_fcp_info.ba_ref_prev_y;
-	fcp_info->ba_ref_cur_y = (void *)compat_fcp_info.ba_ref_cur_y;
-	fcp_info->ba_ref_next_y = (void *)compat_fcp_info.ba_ref_next_y;
-	fcp_info->ba_ref_cur_c = (void *)compat_fcp_info.ba_ref_cur_c;
+	fcp_info->ba_anc_prev_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_prev_y);
+	fcp_info->ba_anc_cur_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_y);
+	fcp_info->ba_anc_next_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_next_y);
+	fcp_info->ba_anc_cur_c = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_c);
+	fcp_info->ba_ref_prev_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_prev_y);
+	fcp_info->ba_ref_cur_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_y);
+	fcp_info->ba_ref_next_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_next_y);
+	fcp_info->ba_ref_cur_c = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_c);
 
 	return 0;
 }
 
 static int set_compat_vsp_dst_par(
-	struct vspm_entry_vsp_out *out, unsigned int *src)
+	struct vspm_entry_vsp_out *out, unsigned int src)
 {
 	struct compat_vsp_dst_t compat_vsp_dst;
 	int ercd;
@@ -1101,15 +1101,15 @@ static int set_compat_vsp_dst_par(
 	/* copy vsp_dst_t parameter */
 	if (copy_from_user(
 			&compat_vsp_dst,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_dst_t))) {
 		EPRINT("failed to copy of vsp_dst_t\n");
 		return -EFAULT;
 	}
 
-	out->out.addr = (void *)compat_vsp_dst.addr;
-	out->out.addr_c0 = (void *)compat_vsp_dst.addr_c0;
-	out->out.addr_c1 = (void *)compat_vsp_dst.addr_c1;
+	out->out.addr = VSPM_IF_INT_TO_VP(compat_vsp_dst.addr);
+	out->out.addr_c0 = VSPM_IF_INT_TO_VP(compat_vsp_dst.addr_c0);
+	out->out.addr_c1 = VSPM_IF_INT_TO_VP(compat_vsp_dst.addr_c1);
 	out->out.stride = compat_vsp_dst.stride;
 	out->out.stride_c = compat_vsp_dst.stride_c;
 	out->out.width = compat_vsp_dst.width;
@@ -1143,14 +1143,14 @@ static int set_compat_vsp_dst_par(
 	return 0;
 }
 
-static int set_compat_vsp_sru_par(struct vsp_sru_t *sru, unsigned int *src)
+static int set_compat_vsp_sru_par(struct vsp_sru_t *sru, unsigned int src)
 {
 	struct compat_vsp_sru_t compat_sru;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_sru,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_sru_t))) {
 		EPRINT("failed to copy of vsp_sru_t\n");
 		return -EFAULT;
@@ -1166,14 +1166,14 @@ static int set_compat_vsp_sru_par(struct vsp_sru_t *sru, unsigned int *src)
 	return 0;
 }
 
-static int set_compat_vsp_uds_par(struct vsp_uds_t *uds, unsigned int *src)
+static int set_compat_vsp_uds_par(struct vsp_uds_t *uds, unsigned int src)
 {
 	struct compat_vsp_uds_t compat_uds;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_uds,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_uds_t))) {
 		EPRINT("failed to copy of vsp_uds_t\n");
 		return -EFAULT;
@@ -1197,22 +1197,22 @@ static int set_compat_vsp_uds_par(struct vsp_uds_t *uds, unsigned int *src)
 }
 
 
-static int set_compat_vsp_lut_par(struct vsp_lut_t *lut, unsigned int *src)
+static int set_compat_vsp_lut_par(struct vsp_lut_t *lut, unsigned int src)
 {
 	struct compat_vsp_lut_t compat_lut;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_lut,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_lut_t))) {
 		EPRINT("failed to copy of vsp_lut_t\n");
 		return -EFAULT;
 	}
 
 	/* set */
-	lut->lut.hard_addr = (void *)compat_lut.lut.hard_addr;
-	lut->lut.virt_addr = (void *)compat_lut.lut.virt_addr;
+	lut->lut.hard_addr = VSPM_IF_INT_TO_VP(compat_lut.lut.hard_addr);
+	lut->lut.virt_addr = VSPM_IF_INT_TO_VP(compat_lut.lut.virt_addr);
 	lut->lut.tbl_num = compat_lut.lut.tbl_num;
 	lut->fxa = compat_lut.fxa;
 	lut->connect = (unsigned long)compat_lut.connect;
@@ -1220,14 +1220,14 @@ static int set_compat_vsp_lut_par(struct vsp_lut_t *lut, unsigned int *src)
 	return 0;
 }
 
-static int set_compat_vsp_clu_par(struct vsp_clu_t *clu, unsigned int *src)
+static int set_compat_vsp_clu_par(struct vsp_clu_t *clu, unsigned int src)
 {
 	struct compat_vsp_clu_t compat_clu;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_clu,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_clu_t))) {
 		EPRINT("failed to copy of vsp_clu_t\n");
 		return -EFAULT;
@@ -1235,8 +1235,8 @@ static int set_compat_vsp_clu_par(struct vsp_clu_t *clu, unsigned int *src)
 
 	/* set */
 	clu->mode = compat_clu.mode;
-	clu->clu.hard_addr = (void *)compat_clu.clu.hard_addr;
-	clu->clu.virt_addr = (void *)compat_clu.clu.virt_addr;
+	clu->clu.hard_addr = VSPM_IF_INT_TO_VP(compat_clu.clu.hard_addr);
+	clu->clu.virt_addr = VSPM_IF_INT_TO_VP(compat_clu.clu.virt_addr);
 	clu->clu.tbl_num = compat_clu.clu.tbl_num;
 	clu->fxa = compat_clu.fxa;
 	clu->connect = (unsigned long)compat_clu.connect;
@@ -1245,14 +1245,14 @@ static int set_compat_vsp_clu_par(struct vsp_clu_t *clu, unsigned int *src)
 }
 
 
-static int set_compat_vsp_hst_par(struct vsp_hst_t *hst, unsigned int *src)
+static int set_compat_vsp_hst_par(struct vsp_hst_t *hst, unsigned int src)
 {
 	struct compat_vsp_hst_t compat_hst;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_hst,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_hst_t))) {
 		EPRINT("failed to copy of vsp_hst_t\n");
 		return -EFAULT;
@@ -1265,14 +1265,14 @@ static int set_compat_vsp_hst_par(struct vsp_hst_t *hst, unsigned int *src)
 	return 0;
 }
 
-static int set_compat_vsp_hsi_par(struct vsp_hsi_t *hsi, unsigned int *src)
+static int set_compat_vsp_hsi_par(struct vsp_hsi_t *hsi, unsigned int src)
 {
 	struct compat_vsp_hsi_t compat_hsi;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_hsi,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_hsi_t))) {
 		EPRINT("failed to copy of vsp_hsi_t\n");
 		return -EFAULT;
@@ -1286,14 +1286,14 @@ static int set_compat_vsp_hsi_par(struct vsp_hsi_t *hsi, unsigned int *src)
 }
 
 static int set_compat_vsp_bru_vir_par(
-	struct vsp_bld_vir_t *vir, unsigned int *src)
+	struct vsp_bld_vir_t *vir, unsigned int src)
 {
 	struct compat_vsp_bld_vir_t compat_vir;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_vir,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_bld_vir_t))) {
 		EPRINT("failed to copy of vsp_bld_vir_t\n");
 		return -EFAULT;
@@ -1311,7 +1311,7 @@ static int set_compat_vsp_bru_vir_par(
 }
 
 static int set_compat_vsp_bru_par(
-	struct vspm_entry_vsp_bru *bru, unsigned int *src)
+	struct vspm_entry_vsp_bru *bru, unsigned int src)
 {
 	struct vsp_bld_ctrl_t * *(src_blend[5]);
 	struct compat_vsp_bru_t compat_bru;
@@ -1321,7 +1321,7 @@ static int set_compat_vsp_bru_par(
 	/* copy vsp_bru_t parameter */
 	if (copy_from_user(
 			&compat_bru,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_bru_t))) {
 		EPRINT("failed to copy of vsp_bru_t\n");
 		return -EFAULT;
@@ -1336,8 +1336,8 @@ static int set_compat_vsp_bru_par(
 		if (compat_bru.dither_unit[i]) {
 			if (copy_from_user(
 					&bru->dither_unit[i],
-					(void __user *)
-						compat_bru.dither_unit[i],
+					VSPM_IF_INT_TO_UP(
+						compat_bru.dither_unit[i]),
 					sizeof(struct vsp_bld_dither_t))) {
 				EPRINT("failed to copy of vsp_bld_dither_t\n");
 				return -EFAULT;
@@ -1366,7 +1366,7 @@ static int set_compat_vsp_bru_par(
 		if (compat_bru.blend_unit[i]) {
 			if (copy_from_user(
 					&bru->blend_unit[i],
-					(void __user *)compat_bru.blend_unit[i],
+					VSPM_IF_INT_TO_UP(compat_bru.blend_unit[i]),
 					sizeof(struct vsp_bld_ctrl_t))) {
 				EPRINT("failed to copy of vsp_bld_ctrl_t\n");
 				return -EFAULT;
@@ -1379,7 +1379,7 @@ static int set_compat_vsp_bru_par(
 	if (compat_bru.rop_unit) {
 		if (copy_from_user(
 				&bru->rop_unit,
-				(void __user *)compat_bru.rop_unit,
+				VSPM_IF_INT_TO_UP(compat_bru.rop_unit),
 				sizeof(struct vsp_bld_rop_t))) {
 			EPRINT("failed to copy of vsp_bld_rop_t\n");
 			return -EFAULT;
@@ -1391,7 +1391,7 @@ static int set_compat_vsp_bru_par(
 }
 
 static int set_compat_vsp_hgo_par(
-	struct vspm_entry_vsp_hgo *hgo, unsigned int *src)
+	struct vspm_entry_vsp_hgo *hgo, unsigned int src)
 {
 	struct compat_vsp_hgo_t compat_hgo;
 	dma_addr_t hard_addr;
@@ -1401,7 +1401,7 @@ static int set_compat_vsp_hgo_par(
 	/* copy */
 	if (copy_from_user(
 			&compat_hgo,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_hgo_t))) {
 		EPRINT("failed to copy of vsp_hgo_t\n");
 		return -EFAULT;
@@ -1435,7 +1435,7 @@ static int set_compat_vsp_hgo_par(
 }
 
 static int set_compat_vsp_hgt_par(
-	struct vspm_entry_vsp_hgt *hgt, unsigned int *src)
+	struct vspm_entry_vsp_hgt *hgt, unsigned int src)
 {
 	struct compat_vsp_hgt_t compat_hgt;
 	dma_addr_t hard_addr;
@@ -1447,7 +1447,7 @@ static int set_compat_vsp_hgt_par(
 	/* copy */
 	if (copy_from_user(
 			&compat_hgt,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_hgt_t))) {
 		EPRINT("failed to copy of vsp_hgt_t\n");
 		return -EFAULT;
@@ -1481,14 +1481,14 @@ static int set_compat_vsp_hgt_par(
 	return 0;
 }
 
-static int set_compat_vsp_shp_par(struct vsp_shp_t *shp, unsigned int *src)
+static int set_compat_vsp_shp_par(struct vsp_shp_t *shp, unsigned int src)
 {
 	struct compat_vsp_shp_t compat_shp;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_shp,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_shp_t))) {
 		EPRINT("failed to copy of vsp_shp_t\n");
 		return -EFAULT;
@@ -1512,22 +1512,22 @@ static int set_compat_vsp_shp_par(struct vsp_shp_t *shp, unsigned int *src)
 	return 0;
 }
 
-static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int *src)
+static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int src)
 {
 	struct compat_vsp_drc_t compat_drc;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_drc,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_drc_t))) {
 		EPRINT("failed to copy of vsp_drc_t\n");
 		return -EFAULT;
 	}
 
 	/* set */
-	drc->drc.hard_addr = (void *)compat_drc.drc.hard_addr;
-	drc->drc.virt_addr = (void *)compat_drc.drc.virt_addr;
+	drc->drc.hard_addr = VSPM_IF_INT_TO_VP(compat_drc.drc.hard_addr);
+	drc->drc.virt_addr = VSPM_IF_INT_TO_VP(compat_drc.drc.virt_addr);
 	drc->drc.tbl_num = compat_drc.drc.tbl_num;
 	drc->fxa = compat_drc.fxa;
 	drc->connect = (unsigned long)compat_drc.connect;
@@ -1537,7 +1537,7 @@ static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int *src)
 
 
 static int set_compat_vsp_ctrl_par(
-	struct vspm_entry_vsp_ctrl *ctrl, unsigned int *src)
+	struct vspm_entry_vsp_ctrl *ctrl, unsigned int src)
 {
 	struct compat_vsp_ctrl_t compat_vsp_ctrl;
 	int ercd;
@@ -1545,7 +1545,7 @@ static int set_compat_vsp_ctrl_par(
 	/* copy vsp_ctrl_t parameter */
 	if (copy_from_user(
 			&compat_vsp_ctrl,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_ctrl_t))) {
 		EPRINT("failed to copy of vsp_ctrl_t\n");
 		return -EFAULT;
@@ -1644,7 +1644,7 @@ static int set_compat_vsp_ctrl_par(
 
 
 int set_compat_vsp_par(
-	struct vspm_if_entry_data_t *entry, unsigned int *src)
+	struct vspm_if_entry_data_t *entry, unsigned int src)
 {
 	struct vspm_entry_vsp *vsp = &entry->ip_par.vsp;
 	struct compat_vsp_start_t compat_vsp_par;
@@ -1657,7 +1657,7 @@ int set_compat_vsp_par(
 	/* copy vsp_start_t parameter */
 	if (copy_from_user(
 			&compat_vsp_par,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_vsp_start_t))) {
 		EPRINT("failed to copy of vsp_start_t\n");
 		return -EFAULT;
@@ -1673,7 +1673,7 @@ int set_compat_vsp_par(
 		/* allocate memory */
 		virt_addr = dma_alloc_coherent(
 			dev,
-			vsp->par.dl_par.tbl_num * 8,
+			compat_vsp_par.dl_par.tbl_num * 8,
 			&hard_addr,
 			GFP_KERNEL | GFP_DMA);
 		if (virt_addr == NULL) {
@@ -1726,14 +1726,14 @@ err_exit:
 	return ercd;
 }
 
-static int set_compat_fdp_pic_par(struct fdp_pic_t *in_pic, unsigned int *src)
+static int set_compat_fdp_pic_par(struct fdp_pic_t *in_pic, unsigned int src)
 {
 	struct compat_fdp_pic_t compat_fdp_pic;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_fdp_pic,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_fdp_pic_t))) {
 		EPRINT("failed to copy of fdp_pic_t\n");
 		return -EFAULT;
@@ -1754,23 +1754,23 @@ static int set_compat_fdp_pic_par(struct fdp_pic_t *in_pic, unsigned int *src)
 }
 
 static int set_compat_fdp_img_par(
-	struct fdp_imgbuf_t *imgbuf, unsigned int *src)
+	struct fdp_imgbuf_t *imgbuf, unsigned int src)
 {
 	struct compat_fdp_imgbuf_t compat_fdp_imgbuf;
 
 	/* copy */
 	if (copy_from_user(
 			&compat_fdp_imgbuf,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_fdp_imgbuf_t))) {
 		EPRINT("failed to copy of fdp_imgbuf_t\n");
 		return -EFAULT;
 	}
 
 	/* set */
-	imgbuf->addr = (void *)compat_fdp_imgbuf.addr;
-	imgbuf->addr_c0 = (void *)compat_fdp_imgbuf.addr_c0;
-	imgbuf->addr_c1 = (void *)compat_fdp_imgbuf.addr_c1;
+	imgbuf->addr = VSPM_IF_INT_TO_VP(compat_fdp_imgbuf.addr);
+	imgbuf->addr_c0 = VSPM_IF_INT_TO_VP(compat_fdp_imgbuf.addr_c0);
+	imgbuf->addr_c1 = VSPM_IF_INT_TO_VP(compat_fdp_imgbuf.addr_c1);
 	imgbuf->stride = compat_fdp_imgbuf.stride;
 	imgbuf->stride_c = compat_fdp_imgbuf.stride_c;
 
@@ -1778,7 +1778,7 @@ static int set_compat_fdp_img_par(
 }
 
 static int set_compat_fdp_ref_par(
-	struct vspm_entry_fdp_ref *ref, unsigned int *src)
+	struct vspm_entry_fdp_ref *ref, unsigned int src)
 {
 	struct compat_fdp_refbuf_t compat_fdp_refbuf;
 	int ercd;
@@ -1786,7 +1786,7 @@ static int set_compat_fdp_ref_par(
 	/* copy fdp_refbuf_t parameter */
 	if (copy_from_user(
 			&compat_fdp_refbuf,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_fdp_refbuf_t))) {
 		EPRINT("failed to copy of fdp_refbuf_t\n");
 		return -EFAULT;
@@ -1820,7 +1820,7 @@ static int set_compat_fdp_ref_par(
 }
 
 static int set_compat_fdp_fproc_par(
-	struct vspm_entry_fdp_fproc *fproc, unsigned int *src)
+	struct vspm_entry_fdp_fproc *fproc, unsigned int src)
 {
 	struct compat_fdp_fproc_t compat_fdp_fproc;
 	int ercd;
@@ -1828,7 +1828,7 @@ static int set_compat_fdp_fproc_par(
 	/* copy fdp_fproc_t parameter */
 	if (copy_from_user(
 			&compat_fdp_fproc,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_fdp_fproc_t))) {
 		EPRINT("failed to copy of fdp_fproc_t\n");
 		return -EFAULT;
@@ -1843,7 +1843,7 @@ static int set_compat_fdp_fproc_par(
 	if (compat_fdp_fproc.seq_par) {
 		if (copy_from_user(
 				&fproc->seq,
-				(void __user *)compat_fdp_fproc.seq_par,
+				VSPM_IF_INT_TO_UP(compat_fdp_fproc.seq_par),
 				sizeof(struct fdp_seq_t))) {
 			EPRINT("failed to copy to fdp_seq_t\n");
 			return -EFAULT;
@@ -1892,7 +1892,7 @@ static int set_compat_fdp_fproc_par(
 
 
 int set_compat_fdp_par(
-	struct vspm_if_entry_data_t *entry, unsigned int *src)
+	struct vspm_if_entry_data_t *entry, unsigned int src)
 {
 	struct vspm_entry_fdp *fdp = &entry->ip_par.fdp;
 	struct compat_fdp_start_t compat_fdp_par;
@@ -1901,7 +1901,7 @@ int set_compat_fdp_par(
 	/* copy fdp_start_t parameter */
 	if (copy_from_user(
 			&compat_fdp_par,
-			(void __user *)src,
+			VSPM_IF_INT_TO_UP(src),
 			sizeof(struct compat_fdp_start_t))) {
 		EPRINT("failed to copy of fdp_start_t\n");
 		return -EFAULT;

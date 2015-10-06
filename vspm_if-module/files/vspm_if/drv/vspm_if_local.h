@@ -74,6 +74,15 @@ extern struct device *dev;
 #define EPRINT(fmt, args...) \
 	printk(KERN_ERR "vspm:%d: " fmt, current->pid, ##args)
 
+#define VSPM_IF_INT_TO_VP(addr) \
+	((void *)((unsigned long)(addr)))
+#define VSPM_IF_INT_TO_UP(addr) \
+	((void __user *)((unsigned long)(addr)))
+#define VSPM_IF_INT_TO_CP(addr) \
+	((PFN_VSPM_COMPLETE_CALLBACK)((unsigned long)(addr)))
+#define VSPM_IF_CP_TO_INT(addr) \
+	((unsigned int)((unsigned long)(addr)))
+
 /* entry data structure */
 struct vspm_if_entry_data_t {
 	struct vspm_if_private_t *priv;
@@ -194,8 +203,8 @@ int set_fdp_par(
 	struct vspm_if_entry_data_t *entry,
 	struct fdp_start_t *fdp_par);
 
-int set_compat_vsp_par(struct vspm_if_entry_data_t *entry, unsigned int *src);
-int set_compat_fdp_par(struct vspm_if_entry_data_t *entry, unsigned int *src);
+int set_compat_vsp_par(struct vspm_if_entry_data_t *entry, unsigned int src);
+int set_compat_fdp_par(struct vspm_if_entry_data_t *entry, unsigned int src);
 
 #endif /* __VSPM_IF_LOCAL_H__ */
 

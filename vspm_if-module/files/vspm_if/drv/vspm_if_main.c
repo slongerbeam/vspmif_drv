@@ -610,15 +610,15 @@ static long vspm_ioctl_init32(
 		/* copy initialize parameter of FDP */
 		if (copy_from_user(
 				&compat_init_fdp_par,
-				(void __user *)compat_init_par.par.fdp,
+				VSPM_IF_INT_TO_UP(compat_init_par.par.fdp),
 				sizeof(struct vspm_compat_init_fdp_t))) {
 			EPRINT("INIT32: failed to copy FDP param\n");
 			return -EFAULT;
 		}
 		init_fdp_par.hard_addr[0] =
-			(void *)compat_init_fdp_par.hard_addr[0];
+			VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[0]);
 		init_fdp_par.hard_addr[1] =
-			(void *)compat_init_fdp_par.hard_addr[1];
+			VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[1]);
 		init_par.par.fdp = &init_fdp_par;
 		break;
 	default:
@@ -680,13 +680,13 @@ static long vspm_ioctl_entry32(
 
 	entry_req->priority = compat_req->priority;
 	entry_req->user_data = (unsigned long)compat_req->user_data;
-	entry_req->cb_func = (PFN_VSPM_COMPLETE_CALLBACK)compat_req->cb_func;
+	entry_req->cb_func = VSPM_IF_INT_TO_CP(compat_req->cb_func);
 
-	if (compat_req->job_param != NULL) {
+	if (compat_req->job_param != 0) {
 		/* copy job parameter */
 		if (copy_from_user(
 				&compat_job,
-				(void __user *)compat_req->job_param,
+				VSPM_IF_INT_TO_UP(compat_req->job_param),
 				sizeof(struct vspm_compat_job_t))) {
 			EPRINT("ENTRY32: failed to copy the job parameter\n");
 			kfree(entry_data);
@@ -790,7 +790,7 @@ static long vspm_ioctl_get_status32(
 
 		/* copy status parameter to user */
 		if (copy_to_user(
-				(void __user *)compat_status.fdp,
+				VSPM_IF_INT_TO_UP(compat_status.fdp),
 				&compat_fdp_status,
 				sizeof(struct compat_fdp_status_t))) {
 			EPRINT("GET32: failed to copy to user\n");
@@ -851,7 +851,7 @@ static long vspm_ioctl_wait_interrupt32(
 		spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 		compat_rsp.ercd = (int)cb_data->rsp.ercd;
-		compat_rsp.cb_func = (unsigned int *)cb_data->rsp.cb_func;
+		compat_rsp.cb_func = VSPM_IF_CP_TO_INT(cb_data->rsp.cb_func);
 		compat_rsp.result = (int)cb_data->rsp.result;
 		compat_rsp.user_data = (unsigned int)cb_data->rsp.user_data;
 

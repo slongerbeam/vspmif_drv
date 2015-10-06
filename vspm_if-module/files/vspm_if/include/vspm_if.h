@@ -122,21 +122,21 @@ struct vspm_compat_init_t {
 	unsigned short mode;
 	unsigned short type;
 	union {
-		unsigned int *vsp;
-		unsigned int *fdp;
+		unsigned int vsp;
+		unsigned int fdp;
 	} par;
 };
 
 struct vspm_compat_init_fdp_t {
-	unsigned int *hard_addr[2];
+	unsigned int hard_addr[2];
 };
 
 struct vspm_compat_entry_t {
 	struct vspm_compat_entry_req_t {
 		char priority;
-		unsigned int *job_param;
+		unsigned int job_param;
 		unsigned int user_data;
-		unsigned int *cb_func;
+		unsigned int cb_func;
 	} req;
 	struct vspm_compat_entry_rsp_t {
 		int ercd;
@@ -147,16 +147,16 @@ struct vspm_compat_entry_t {
 struct vspm_compat_job_t {
 	unsigned short type;
 	union {
-		unsigned int *vsp;
-		unsigned int *fdp;
+		unsigned int vsp;
+		unsigned int fdp;
 	} par;
 };
 
 struct compat_vsp_dl_t {
-	unsigned int *hard_addr;
-	unsigned int *virt_addr;
+	unsigned int hard_addr;
+	unsigned int virt_addr;
 	unsigned short tbl_num;
-	unsigned int *mem_par;
+	unsigned int mem_par;
 };
 
 struct compat_vsp_irop_unit_t {
@@ -175,7 +175,7 @@ struct compat_vsp_ckey_unit_t {
 };
 
 struct compat_vsp_alpha_unit_t {
-	unsigned int *addr_a;
+	unsigned int addr_a;
 	unsigned short stride_a;
 	unsigned char swap;
 	unsigned char asel;
@@ -183,15 +183,15 @@ struct compat_vsp_alpha_unit_t {
 	unsigned char anum0;
 	unsigned char anum1;
 	unsigned char afix;
-	unsigned int *irop;
-	unsigned int *ckey;
-	unsigned int *mult;
+	unsigned int irop;
+	unsigned int ckey;
+	unsigned int mult;
 };
 
 struct compat_vsp_src_t {
-	unsigned int *addr;
-	unsigned int *addr_c0;
-	unsigned int *addr_c1;
+	unsigned int addr;
+	unsigned int addr_c0;
+	unsigned int addr_c1;
 	unsigned short stride;
 	unsigned short stride_c;
 	unsigned short width;
@@ -211,16 +211,16 @@ struct compat_vsp_src_t {
 	unsigned char iturbt;
 	unsigned char clrcng;
 	unsigned char vir;
-	unsigned long vircolor;
-	unsigned int *clut;
-	unsigned int *alpha;
+	unsigned int vircolor;
+	unsigned int clut;
+	unsigned int alpha;
 	unsigned int connect;
 };
 
 struct compat_vsp_dst_t {
-	unsigned int *addr;
-	unsigned int *addr_c0;
-	unsigned int *addr_c1;
+	unsigned int addr;
+	unsigned int addr_c0;
+	unsigned int addr_c1;
 	unsigned short stride;
 	unsigned short stride_c;
 	unsigned short width;
@@ -242,7 +242,7 @@ struct compat_vsp_dst_t {
 	unsigned char clmd;
 	unsigned char dith;
 	unsigned char rotation;
-	unsigned int *fcp;
+	unsigned int fcp;
 };
 
 struct compat_vsp_sru_t {
@@ -303,17 +303,17 @@ struct compat_vsp_bld_vir_t {
 struct compat_vsp_bru_t {
 	unsigned int lay_order;
 	unsigned char adiv;
-	unsigned int *dither_unit[5];
-	unsigned int *blend_virtual;
-	unsigned int *blend_unit[5];
-	unsigned int *rop_unit;
+	unsigned int dither_unit[5];
+	unsigned int blend_virtual;
+	unsigned int blend_unit[5];
+	unsigned int rop_unit;
 	unsigned int connect;
 };
 
 struct compat_vsp_hgo_t {
-	unsigned int *hard_addr;
-	unsigned int *virt_addr;
-	unsigned int *mem_par;
+	unsigned int hard_addr;
+	unsigned int virt_addr;
+	unsigned int mem_par;
 	unsigned short width;
 	unsigned short height;
 	unsigned short x_offset;
@@ -327,9 +327,9 @@ struct compat_vsp_hgo_t {
 };
 
 struct compat_vsp_hgt_t {
-	unsigned int *hard_addr;
-	unsigned int *virt_addr;
-	unsigned int *mem_par;
+	unsigned int hard_addr;
+	unsigned int virt_addr;
+	unsigned int mem_par;
 	unsigned short width;
 	unsigned short height;
 	unsigned short x_offset;
@@ -363,26 +363,26 @@ struct compat_vsp_drc_t {
 };
 
 struct compat_vsp_ctrl_t {
-	unsigned int *sru;
-	unsigned int *uds;
-	unsigned int *lut;
-	unsigned int *clu;
-	unsigned int *hst;
-	unsigned int *hsi;
-	unsigned int *bru;
-	unsigned int *hgo;
-	unsigned int *hgt;
-	unsigned int *shp;
-	unsigned int *drc;
+	unsigned int sru;
+	unsigned int uds;
+	unsigned int lut;
+	unsigned int clu;
+	unsigned int hst;
+	unsigned int hsi;
+	unsigned int bru;
+	unsigned int hgo;
+	unsigned int hgt;
+	unsigned int shp;
+	unsigned int drc;
 };
 
 struct compat_vsp_start_t {
 	unsigned char rpf_num;
 	unsigned int rpf_order;
 	unsigned int use_module;
-	unsigned int *src_par[5];
-	unsigned int *dst_par;
-	unsigned int *ctrl_par;
+	unsigned int src_par[5];
+	unsigned int dst_par;
+	unsigned int ctrl_par;
 	struct compat_vsp_dl_t dl_par;
 };
 
@@ -399,38 +399,38 @@ struct compat_fdp_pic_t {
 };
 
 struct compat_fdp_imgbuf_t {
-	unsigned int *addr;
-	unsigned int *addr_c0;
-	unsigned int *addr_c1;
+	unsigned int addr;
+	unsigned int addr_c0;
+	unsigned int addr_c1;
 	unsigned short stride;
 	unsigned short stride_c;
 };
 
 struct compat_fdp_refbuf_t {
-	unsigned int *next_buf;
-	unsigned int *cur_buf;
-	unsigned int *prev_buf;
+	unsigned int next_buf;
+	unsigned int cur_buf;
+	unsigned int prev_buf;
 };
 
 struct compat_fdp_fproc_t {
-	unsigned int *seq_par;
-	unsigned int *in_pic;
+	unsigned int seq_par;
+	unsigned int in_pic;
 	unsigned char last_seq_indicator;
 	unsigned char current_field;
 	unsigned char interpolated_line;
 	unsigned char out_format;
-	unsigned int *out_buf;
-	unsigned int *ref_buf;
-	unsigned int *fcp_par;
+	unsigned int out_buf;
+	unsigned int ref_buf;
+	unsigned int fcp_par;
 };
 
 struct compat_fdp_start_t {
 	unsigned char fdpgo;
-	unsigned int *fproc_par;
+	unsigned int fproc_par;
 };
 
 struct vspm_compat_status_t {
-	unsigned int *fdp;
+	unsigned int fdp;
 };
 
 struct compat_fdp_status_t {
@@ -441,7 +441,7 @@ struct compat_fdp_status_t {
 
 struct vspm_compat_cb_rsp_t {
 	int ercd;
-	unsigned int *cb_func;
+	unsigned int cb_func;
 	unsigned int job_id;
 	int result;
 	unsigned int user_data;
@@ -453,14 +453,14 @@ struct compat_fcp_info_t {
 	unsigned short pos_y;
 	unsigned short pos_c;
 	unsigned short stride_div16;
-	unsigned int *ba_anc_prev_y;
-	unsigned int *ba_anc_cur_y;
-	unsigned int *ba_anc_next_y;
-	unsigned int *ba_anc_cur_c;
-	unsigned int *ba_ref_prev_y;
-	unsigned int *ba_ref_cur_y;
-	unsigned int *ba_ref_next_y;
-	unsigned int *ba_ref_cur_c;
+	unsigned int ba_anc_prev_y;
+	unsigned int ba_anc_cur_y;
+	unsigned int ba_anc_next_y;
+	unsigned int ba_anc_cur_c;
+	unsigned int ba_ref_prev_y;
+	unsigned int ba_ref_cur_y;
+	unsigned int ba_ref_next_y;
+	unsigned int ba_ref_cur_c;
 };
 
 #define VSPM_IOC_CMD_INIT32 \
