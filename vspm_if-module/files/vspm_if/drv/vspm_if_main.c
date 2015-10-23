@@ -854,6 +854,42 @@ static long vspm_ioctl_wait_interrupt32(
 		list_del(&cb_data->list);
 		spin_unlock_irqrestore(&priv->lock, lock_flag);
 
+		/* HGO result */
+		if (cb_data->vsp_hgo.knel_addr != NULL) {
+			/* copy to user area */
+			if (cb_data->vsp_hgo.user_addr != NULL) {
+				if (copy_to_user((void __user *)
+						cb_data->vsp_hgo.user_addr,
+						cb_data->vsp_hgo.knel_addr,
+						1088)) {
+					APRINT(
+						"CB32: failed to copy HGO data\n");
+					ercd = -EFAULT;
+				}
+			}
+
+			/* release memory */
+			kfree(cb_data->vsp_hgo.knel_addr);
+		}
+
+		/* HGT result */
+		if (cb_data->vsp_hgt.knel_addr != NULL) {
+			/* copy to user area */
+			if (cb_data->vsp_hgt.user_addr != NULL) {
+				if (copy_to_user((void __user *)
+						cb_data->vsp_hgt.user_addr,
+						cb_data->vsp_hgt.knel_addr,
+						800)) {
+					APRINT(
+						"CB32: failed to copy HGT data\n");
+					ercd = -EFAULT;
+				}
+			}
+
+			/* release memory */
+			kfree(cb_data->vsp_hgt.knel_addr);
+		}
+
 		compat_rsp.ercd = (int)cb_data->rsp.ercd;
 		compat_rsp.cb_func = VSPM_IF_CP_TO_INT(cb_data->rsp.cb_func);
 		compat_rsp.result = (int)cb_data->rsp.result;

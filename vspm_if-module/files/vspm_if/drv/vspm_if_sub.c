@@ -1420,6 +1420,7 @@ static int set_compat_vsp_hgo_par(
 	hgo->hgo.hard_addr = (void *)(tmp_addr << 8);
 	tmp_addr = (unsigned long)(virt_addr + 255) >> 8;
 	hgo->hgo.virt_addr = (void *)(tmp_addr << 8);
+
 	hgo->hgo.width = compat_hgo.width;
 	hgo->hgo.height = compat_hgo.height;
 	hgo->hgo.x_offset = compat_hgo.x_offset;
@@ -1430,6 +1431,10 @@ static int set_compat_vsp_hgo_par(
 	hgo->hgo.x_skip = compat_hgo.x_skip;
 	hgo->hgo.y_skip = compat_hgo.y_skip;
 	hgo->hgo.sampling = (unsigned long)compat_hgo.sampling;
+
+	hgo->hard_addr = hard_addr;
+	hgo->virt_addr = virt_addr;
+	hgo->user_addr = VSPM_IF_INT_TO_VP(compat_hgo.virt_addr);
 
 	return 0;
 }
@@ -1466,6 +1471,7 @@ static int set_compat_vsp_hgt_par(
 	hgt->hgt.hard_addr = (void *)(tmp_addr << 8);
 	tmp_addr = (unsigned long)(virt_addr + 255) >> 8;
 	hgt->hgt.virt_addr = (void *)(tmp_addr << 8);
+
 	hgt->hgt.width = compat_hgt.width;
 	hgt->hgt.height = compat_hgt.height;
 	hgt->hgt.x_offset = compat_hgt.x_offset;
@@ -1477,6 +1483,10 @@ static int set_compat_vsp_hgt_par(
 		hgt->hgt.area[i].upper = compat_hgt.area[i].upper;
 	}
 	hgt->hgt.sampling = (unsigned long)compat_hgt.sampling;
+
+	hgt->hard_addr = hard_addr;
+	hgt->virt_addr = virt_addr;
+	hgt->user_addr = VSPM_IF_INT_TO_VP(compat_hgt.virt_addr);
 
 	return 0;
 }
