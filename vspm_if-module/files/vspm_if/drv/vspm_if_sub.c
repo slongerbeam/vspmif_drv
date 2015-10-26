@@ -657,52 +657,86 @@ err_exit:
 	return ercd;
 }
 
+int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
+{
+	int i;
+
+	if (cb_data->vsp_dl.virt_addr != NULL) {
+		dma_free_coherent(
+			dev,
+			cb_data->vsp_dl.size,
+			cb_data->vsp_dl.virt_addr,
+			cb_data->vsp_dl.hard_addr);
+	}
+
+	for (i = 0; i < 5; i++) {
+		if (cb_data->vsp_in[i].virt_addr != NULL) {
+			dma_free_coherent(
+				dev,
+				cb_data->vsp_in[i].size,
+				cb_data->vsp_in[i].virt_addr,
+				cb_data->vsp_in[i].hard_addr);
+		}
+	}
+
+	if (cb_data->vsp_hgo.virt_addr != NULL) {
+		dma_free_coherent(
+			dev,
+			1088,
+			cb_data->vsp_hgo.virt_addr,
+			cb_data->vsp_hgo.hard_addr);
+	}
+
+	if (cb_data->vsp_hgt.virt_addr != NULL) {
+		dma_free_coherent(
+			dev,
+			800,
+			cb_data->vsp_hgt.virt_addr,
+			cb_data->vsp_hgt.hard_addr);
+	}
+
+	return 0;
+}
+
 void set_cb_rsp_vsp(
 	struct vspm_if_cb_data_t *cb_data,
 	struct vspm_if_entry_data_t *entry_data)
 {
+	struct vspm_entry_vsp_in *in =
+		&entry_data->ip_par.vsp.in[0];
 	struct vspm_entry_vsp_hgo *hgo =
 		&entry_data->ip_par.vsp.ctrl.hgo;
 	struct vspm_entry_vsp_hgt *hgt =
 		&entry_data->ip_par.vsp.ctrl.hgt;
+	struct vspm_entry_vsp_dl *dl =
+		&entry_data->ip_par.vsp.dl;
 
-	void *data;
+	int i;
 
-	if (entry_data->ip_par.vsp.par.use_module & VSP_HGO_USE) {
-		/* copy response of HGO */
-		if (hgo->hgo.virt_addr != NULL) {
-			/* allocate memory */
-			data = kzalloc(1088, GFP_ATOMIC);
-			if (data != NULL) {
-				/* copy */
-				memcpy(data, hgo->hgo.virt_addr, 1088);
+	/* inherits display list buffer address */
+	cb_data->vsp_dl.size =
+		(size_t)(entry_data->ip_par.vsp.par.dl_par.tbl_num * 8);
+	cb_data->vsp_dl.hard_addr = dl->hard_addr;
+	cb_data->vsp_dl.virt_addr = dl->virt_addr;
 
-				/* set */
-				cb_data->vsp_hgo.user_addr = hgo->user_addr;
-				cb_data->vsp_hgo.knel_addr = data;
-			} else {
-				APRINT("failed to allocate memory of HGO\n");
-			}
-		}
+	/* inherits RPF(clut) buffer address */
+	for (i = 0; i < 5; i++) {
+		cb_data->vsp_in[i].size =
+			(size_t)(in->clut.clut.tbl_num * 8);
+		cb_data->vsp_in[i].hard_addr = in->clut.hard_addr;
+		cb_data->vsp_in[i].virt_addr = in->clut.virt_addr;
+		in++;
 	}
 
-	if (entry_data->ip_par.vsp.par.use_module & VSP_HGT_USE) {
-		/* copy response of HGT */
-		if (hgt->hgt.virt_addr != NULL) {
-			/* allocate memory */
-			data = kzalloc(800, GFP_ATOMIC);
-			if (data != NULL) {
-				/* copy */
-				memcpy(data, hgt->hgt.virt_addr, 800);
+	/* inherits histogram(HGO) buffer address */
+	cb_data->vsp_hgo.hard_addr = hgo->hard_addr;
+	cb_data->vsp_hgo.virt_addr = hgo->virt_addr;
+	cb_data->vsp_hgo.user_addr = hgo->user_addr;
 
-				/* set */
-				cb_data->vsp_hgt.user_addr = hgt->user_addr;
-				cb_data->vsp_hgt.knel_addr = data;
-			} else {
-				APRINT("failed to allocate memory of HGT\n");
-			}
-		}
-	}
+	/* inherits histogram(HGT) buffer address */
+	cb_data->vsp_hgt.hard_addr = hgt->hard_addr;
+	cb_data->vsp_hgt.virt_addr = hgt->virt_addr;
+	cb_data->vsp_hgt.user_addr = hgt->user_addr;
 }
 
 static int set_fdp_ref_par(

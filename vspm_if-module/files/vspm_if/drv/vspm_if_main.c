@@ -211,7 +211,11 @@ static void vspm_cb_func(
 	cb_data = kzalloc(sizeof(struct vspm_if_cb_data_t), GFP_ATOMIC);
 	if (cb_data == NULL) {
 		EPRINT("CB: failed to allocate memory\n");
-		goto exit;
+		/* release memory */
+		if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
+			free_vsp_par(&entry_data->ip_par.vsp);
+		kfree(entry_data);
+		return;
 	}
 
 	/* make response data */
@@ -232,11 +236,6 @@ static void vspm_cb_func(
 	spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 	complete(&priv->wait_interrupt);
-
-exit:
-	/* release memory */
-	if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
-		free_vsp_par(&entry_data->ip_par.vsp);
 	kfree(entry_data);
 }
 
@@ -445,35 +444,33 @@ static long vspm_ioctl_wait_interrupt(
 		spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 		/* HGO result */
-		if (cb_data->vsp_hgo.knel_addr != NULL) {
+		if (cb_data->vsp_hgo.virt_addr != NULL) {
+			unsigned long tmp_addr = (unsigned long)
+				(cb_data->vsp_hgo.virt_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgo.user_addr != NULL) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgo.user_addr,
-						cb_data->vsp_hgo.knel_addr,
+						(void *)(tmp_addr << 8),
 						1088)) {
 					APRINT("CB: failed to copy HGO data\n");
-					ercd = -EFAULT;
 				}
 			}
-			/* release memory */
-			kfree(cb_data->vsp_hgo.knel_addr);
 		}
 
 		/* HGT result */
-		if (cb_data->vsp_hgt.knel_addr != NULL) {
+		if (cb_data->vsp_hgt.virt_addr != NULL) {
+			unsigned long tmp_addr = (unsigned long)
+				(cb_data->vsp_hgt.virt_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgt.user_addr != NULL) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgt.user_addr,
-						cb_data->vsp_hgt.knel_addr,
+						(void *)(tmp_addr << 8),
 						800)) {
 					APRINT("CB: failed to copy HGT data\n");
-					ercd = -EFAULT;
 				}
 			}
-			/* release memory */
-			kfree(cb_data->vsp_hgt.knel_addr);
 		}
 
 		/* copy response data to user */
@@ -486,6 +483,7 @@ static long vspm_ioctl_wait_interrupt(
 		}
 
 		/* release memory */
+		free_cb_vsp_par(cb_data);
 		kfree(cb_data);
 	}
 
@@ -517,10 +515,7 @@ static long vspm_ioctl_stop_thread(struct vspm_if_private_t *priv)
 	spin_lock_irqsave(&priv->lock, lock_flag);
 	list_for_each_entry_safe(cb_data, next, &priv->cb_data.list, list) {
 		list_del(&cb_data->list);
-		if (cb_data->vsp_hgo.knel_addr != NULL)
-			kfree(cb_data->vsp_hgo.knel_addr);
-		if (cb_data->vsp_hgt.knel_addr != NULL)
-			kfree(cb_data->vsp_hgt.knel_addr);
+		free_cb_vsp_par(cb_data);
 		kfree(cb_data);
 	}
 	spin_unlock_irqrestore(&priv->lock, lock_flag);
@@ -855,39 +850,35 @@ static long vspm_ioctl_wait_interrupt32(
 		spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 		/* HGO result */
-		if (cb_data->vsp_hgo.knel_addr != NULL) {
+		if (cb_data->vsp_hgo.virt_addr != NULL) {
+			unsigned long tmp_addr = (unsigned long)
+				(cb_data->vsp_hgo.virt_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgo.user_addr != NULL) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgo.user_addr,
-						cb_data->vsp_hgo.knel_addr,
+						(void *)(tmp_addr << 8),
 						1088)) {
 					APRINT(
 						"CB32: failed to copy HGO data\n");
-					ercd = -EFAULT;
 				}
 			}
-
-			/* release memory */
-			kfree(cb_data->vsp_hgo.knel_addr);
 		}
 
 		/* HGT result */
-		if (cb_data->vsp_hgt.knel_addr != NULL) {
+		if (cb_data->vsp_hgt.virt_addr != NULL) {
+			unsigned long tmp_addr = (unsigned long)
+				(cb_data->vsp_hgt.virt_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgt.user_addr != NULL) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgt.user_addr,
-						cb_data->vsp_hgt.knel_addr,
+						(void *)(tmp_addr << 8),
 						800)) {
 					APRINT(
 						"CB32: failed to copy HGT data\n");
-					ercd = -EFAULT;
 				}
 			}
-
-			/* release memory */
-			kfree(cb_data->vsp_hgt.knel_addr);
 		}
 
 		compat_rsp.ercd = (int)cb_data->rsp.ercd;
@@ -905,6 +896,7 @@ static long vspm_ioctl_wait_interrupt32(
 		}
 
 		/* release memory */
+		free_cb_vsp_par(cb_data);
 		kfree(cb_data);
 	}
 

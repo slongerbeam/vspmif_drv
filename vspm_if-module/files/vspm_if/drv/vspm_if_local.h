@@ -171,14 +171,26 @@ struct vspm_if_entry_data_t {
 struct vspm_if_cb_data_t {
 	struct list_head list;
 	struct vspm_if_cb_rsp_t rsp;
+	struct vspm_cb_vsp_in {
+		dma_addr_t hard_addr;
+		void *virt_addr;
+		size_t size;
+	} vsp_in[5];
 	struct vspm_cb_vsp_hgo {
+		dma_addr_t hard_addr;
+		void *virt_addr;
 		void *user_addr;
-		void *knel_addr;
 	} vsp_hgo;
 	struct vspm_cb_vsp_hgt {
+		dma_addr_t hard_addr;
+		void *virt_addr;
 		void *user_addr;
-		void *knel_addr;
 	} vsp_hgt;
+	struct vspm_cb_vsp_dl {
+		dma_addr_t hard_addr;
+		void *virt_addr;
+		size_t size;
+	} vsp_dl;
 };
 
 /* private data structure */
@@ -196,6 +208,7 @@ int free_vsp_par(struct vspm_entry_vsp *vsp);
 int set_vsp_par(
 	struct vspm_if_entry_data_t *entry,
 	struct vsp_start_t *vsp_par);
+int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data);
 void set_cb_rsp_vsp(
 	struct vspm_if_cb_data_t *cb_data,
 	struct vspm_if_entry_data_t *entry_data);
