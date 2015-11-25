@@ -883,6 +883,7 @@ static long vspm_ioctl_wait_interrupt32(
 
 		compat_rsp.ercd = (int)cb_data->rsp.ercd;
 		compat_rsp.cb_func = VSPM_IF_CP_TO_INT(cb_data->rsp.cb_func);
+		compat_rsp.job_id = (unsigned int)cb_data->rsp.job_id;
 		compat_rsp.result = (int)cb_data->rsp.result;
 		compat_rsp.user_data = (unsigned int)cb_data->rsp.user_data;
 
