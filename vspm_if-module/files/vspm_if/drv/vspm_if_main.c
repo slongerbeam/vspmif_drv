@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  VSPM
 
- Copyright (C) 2015 Renesas Electronics Corporation
+ Copyright (C) 2015-2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -606,15 +606,15 @@ static long vspm_ioctl_init32(
 		if (compat_init_par.par.fdp != 0) {
 			if (copy_from_user(
 					&compat_init_fdp_par,
-					VSPM_IF_INT_TO_UP(compat_init_par.par.fdp),
-					sizeof(struct vspm_compat_init_fdp_t))) {
+				    VSPM_IF_INT_TO_UP(compat_init_par.par.fdp),
+				    sizeof(struct vspm_compat_init_fdp_t))) {
 				EPRINT("INIT32: failed to copy FDP param\n");
 				return -EFAULT;
 			}
 			init_fdp_par.hard_addr[0] =
-				VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[0]);
+			    VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[0]);
 			init_fdp_par.hard_addr[1] =
-				VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[1]);
+			    VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[1]);
 			init_par.par.fdp = &init_fdp_par;
 		} else {
 			init_par.par.fdp = NULL;

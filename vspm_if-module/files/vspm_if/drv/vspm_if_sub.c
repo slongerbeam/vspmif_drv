@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  VSPM
 
- Copyright (C) 2015 Renesas Electronics Corporation
+ Copyright (C) 2015-2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -1114,14 +1114,22 @@ static int set_compat_fcp_par(struct fcp_info_t *fcp_info, unsigned int src)
 	fcp_info->pos_y = compat_fcp_info.pos_y;
 	fcp_info->pos_c = compat_fcp_info.pos_c;
 	fcp_info->stride_div16 = compat_fcp_info.stride_div16;
-	fcp_info->ba_anc_prev_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_prev_y);
-	fcp_info->ba_anc_cur_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_y);
-	fcp_info->ba_anc_next_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_next_y);
-	fcp_info->ba_anc_cur_c = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_c);
-	fcp_info->ba_ref_prev_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_prev_y);
-	fcp_info->ba_ref_cur_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_y);
-	fcp_info->ba_ref_next_y = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_next_y);
-	fcp_info->ba_ref_cur_c = VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_c);
+	fcp_info->ba_anc_prev_y =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_prev_y);
+	fcp_info->ba_anc_cur_y =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_y);
+	fcp_info->ba_anc_next_y =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_next_y);
+	fcp_info->ba_anc_cur_c =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_c);
+	fcp_info->ba_ref_prev_y =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_prev_y);
+	fcp_info->ba_ref_cur_y =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_y);
+	fcp_info->ba_ref_next_y =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_next_y);
+	fcp_info->ba_ref_cur_c =
+		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_c);
 
 	return 0;
 }
@@ -1400,7 +1408,7 @@ static int set_compat_vsp_bru_par(
 		if (compat_bru.blend_unit[i]) {
 			if (copy_from_user(
 					&bru->blend_unit[i],
-					VSPM_IF_INT_TO_UP(compat_bru.blend_unit[i]),
+				    VSPM_IF_INT_TO_UP(compat_bru.blend_unit[i]),
 					sizeof(struct vsp_bld_ctrl_t))) {
 				EPRINT("failed to copy of vsp_bld_ctrl_t\n");
 				return -EFAULT;

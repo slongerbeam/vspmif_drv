@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  VSPM
 
- Copyright (C) 2015 Renesas Electronics Corporation
+ Copyright (C) 2015-2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -68,11 +68,11 @@ extern struct device *dev;
 
 /* define macro */
 #define IPRINT(fmt, args...) \
-	printk(KERN_INFO "vspm:%d: " fmt, current->pid, ##args)
+	pr_info("vspm_if:%d: " fmt, current->pid, ##args)
 #define APRINT(fmt, args...) \
-	printk(KERN_ALERT "vspm:%d: " fmt, current->pid, ##args)
+	pr_alert("vspm_if:%d: " fmt, current->pid, ##args)
 #define EPRINT(fmt, args...) \
-	printk(KERN_ERR "vspm:%d: " fmt, current->pid, ##args)
+	pr_err("vspm_if:%d: " fmt, current->pid, ##args)
 
 #define VSPM_IF_INT_TO_VP(addr) \
 	((void *)((unsigned long)(addr)))
