@@ -90,7 +90,7 @@ static int set_vsp_src_clut_par(
 		(clut->clut.tbl_num <= 256)) {
 		/* allocate memory */
 		virt_addr = dma_alloc_coherent(
-			dev,
+			&g_pdev->dev,
 			clut->clut.tbl_num * 8,
 			&hard_addr,
 			GFP_KERNEL | GFP_DMA);
@@ -106,7 +106,7 @@ static int set_vsp_src_clut_par(
 				clut->clut.tbl_num * 8)) {
 			EPRINT("failed to copy of color table\n");
 			dma_free_coherent(
-				dev,
+				&g_pdev->dev,
 				clut->clut.tbl_num * 8,
 				virt_addr,
 				hard_addr);
@@ -333,7 +333,7 @@ static int set_vsp_hgo_par(
 
 	/* allocate memory */
 	virt_addr = dma_alloc_coherent(
-		dev, 1088, &hard_addr, GFP_KERNEL | GFP_DMA);
+		&g_pdev->dev, 1088, &hard_addr, GFP_KERNEL | GFP_DMA);
 	if (virt_addr == NULL) {
 		EPRINT("failed to allocate memory\n");
 		return -EFAULT;
@@ -370,7 +370,7 @@ static int set_vsp_hgt_par(
 
 	/* allocate memory */
 	virt_addr = dma_alloc_coherent(
-		dev, 800, &hard_addr, GFP_KERNEL | GFP_DMA);
+		&g_pdev->dev, 800, &hard_addr, GFP_KERNEL | GFP_DMA);
 	if (virt_addr == NULL) {
 		EPRINT("failed to allocate memory\n");
 		return -EFAULT;
@@ -535,7 +535,7 @@ int free_vsp_par(struct vspm_entry_vsp *vsp)
 
 	if (vsp->dl.virt_addr != NULL) {
 		dma_free_coherent(
-			dev,
+			&g_pdev->dev,
 			vsp->par.dl_par.tbl_num * 8,
 			vsp->dl.virt_addr,
 			vsp->dl.hard_addr);
@@ -546,7 +546,7 @@ int free_vsp_par(struct vspm_entry_vsp *vsp)
 	for (i = 0; i < 5; i++) {
 		if (in->clut.virt_addr != NULL) {
 			dma_free_coherent(
-				dev,
+				&g_pdev->dev,
 				in->clut.clut.tbl_num * 8,
 				in->clut.virt_addr,
 				in->clut.hard_addr);
@@ -558,7 +558,7 @@ int free_vsp_par(struct vspm_entry_vsp *vsp)
 
 	if (ctrl->hgo.virt_addr != NULL) {
 		dma_free_coherent(
-			dev,
+			&g_pdev->dev,
 			1088,
 			ctrl->hgo.virt_addr,
 			ctrl->hgo.hard_addr);
@@ -568,7 +568,7 @@ int free_vsp_par(struct vspm_entry_vsp *vsp)
 
 	if (ctrl->hgt.virt_addr != NULL) {
 		dma_free_coherent(
-			dev,
+			&g_pdev->dev,
 			800,
 			ctrl->hgt.virt_addr,
 			ctrl->hgt.hard_addr);
@@ -606,7 +606,7 @@ int set_vsp_par(
 	if ((dl_par->tbl_num > 0) && (dl_par->tbl_num < 16384)) {
 		/* allocate memory */
 		virt_addr = dma_alloc_coherent(
-			dev,
+			&g_pdev->dev,
 			dl_par->tbl_num * 8,
 			&hard_addr,
 			GFP_KERNEL | GFP_DMA);
@@ -663,7 +663,7 @@ int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 
 	if (cb_data->vsp_dl.virt_addr != NULL) {
 		dma_free_coherent(
-			dev,
+			&g_pdev->dev,
 			cb_data->vsp_dl.size,
 			cb_data->vsp_dl.virt_addr,
 			cb_data->vsp_dl.hard_addr);
@@ -672,7 +672,7 @@ int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 	for (i = 0; i < 5; i++) {
 		if (cb_data->vsp_in[i].virt_addr != NULL) {
 			dma_free_coherent(
-				dev,
+				&g_pdev->dev,
 				cb_data->vsp_in[i].size,
 				cb_data->vsp_in[i].virt_addr,
 				cb_data->vsp_in[i].hard_addr);
@@ -681,7 +681,7 @@ int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 
 	if (cb_data->vsp_hgo.virt_addr != NULL) {
 		dma_free_coherent(
-			dev,
+			&g_pdev->dev,
 			1088,
 			cb_data->vsp_hgo.virt_addr,
 			cb_data->vsp_hgo.hard_addr);
@@ -689,7 +689,7 @@ int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 
 	if (cb_data->vsp_hgt.virt_addr != NULL) {
 		dma_free_coherent(
-			dev,
+			&g_pdev->dev,
 			800,
 			cb_data->vsp_hgt.virt_addr,
 			cb_data->vsp_hgt.hard_addr);
@@ -897,7 +897,7 @@ static int set_compat_vsp_src_clut_par(
 		(compat_dl_par.tbl_num <= 256)) {
 		/* allocate memory */
 		virt_addr = dma_alloc_coherent(
-			dev,
+			&g_pdev->dev,
 			compat_dl_par.tbl_num * 8,
 			&hard_addr,
 			GFP_KERNEL | GFP_DMA);
@@ -913,7 +913,7 @@ static int set_compat_vsp_src_clut_par(
 				compat_dl_par.tbl_num * 8)) {
 			EPRINT("failed to copy color table\n");
 			dma_free_coherent(
-				dev,
+				&g_pdev->dev,
 				compat_dl_par.tbl_num * 8,
 				virt_addr,
 				hard_addr);
@@ -1451,7 +1451,7 @@ static int set_compat_vsp_hgo_par(
 
 	/* allocate memory */
 	virt_addr = dma_alloc_coherent(
-		dev, 1088, &hard_addr, GFP_KERNEL | GFP_DMA);
+		&g_pdev->dev, 1088, &hard_addr, GFP_KERNEL | GFP_DMA);
 	if (virt_addr == NULL) {
 		EPRINT("failed to allocate memory\n");
 		return -EFAULT;
@@ -1502,7 +1502,7 @@ static int set_compat_vsp_hgt_par(
 
 	/* allocate memory */
 	virt_addr = dma_alloc_coherent(
-		dev, 800, &hard_addr, GFP_KERNEL | GFP_DMA);
+		&g_pdev->dev, 800, &hard_addr, GFP_KERNEL | GFP_DMA);
 	if (virt_addr == NULL) {
 		EPRINT("failed to allocate memory\n");
 		return -EFAULT;
@@ -1724,7 +1724,7 @@ int set_compat_vsp_par(
 		(compat_vsp_par.dl_par.tbl_num < 16384)) {
 		/* allocate memory */
 		virt_addr = dma_alloc_coherent(
-			dev,
+			&g_pdev->dev,
 			compat_vsp_par.dl_par.tbl_num * 8,
 			&hard_addr,
 			GFP_KERNEL | GFP_DMA);

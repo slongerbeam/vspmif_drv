@@ -63,6 +63,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/miscdevice.h>
+#include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
 #include <linux/fs.h>
@@ -72,7 +73,7 @@
 #include "vspm_if.h"
 #include "vspm_if_local.h"
 
-struct device *dev;
+struct platform_device *g_pdev;
 
 static int open(struct inode *inode, struct file *file)
 {
@@ -964,11 +965,47 @@ static struct miscdevice misc = {
 	.fops = &fops
 };
 
+static int vspm_if_probe(struct platform_device *pdev)
+{
+	if (g_pdev != NULL)
+		return -1;
+
+	g_pdev = pdev;
+	return 0;
+}
+
+static int vspm_if_remove(struct platform_device *pdev)
+{
+	g_pdev = NULL;
+	return 0;
+}
+
+static const struct of_device_id vspm_if_of_match[] = {
+	{ .compatible = "renesas,vspm_if" },
+	{ },
+};
+
+static struct platform_driver vspm_if_driver = {
+	.driver = {
+		.name = DEVFILE,
+		.owner = THIS_MODULE,
+		.of_match_table = vspm_if_of_match,
+	},
+	.probe = vspm_if_probe,
+	.remove = vspm_if_remove,
+};
+
 static int vspm_if_init(void)
 {
+	g_pdev = NULL;
+
+	platform_driver_register(&vspm_if_driver);
+	if (g_pdev == NULL) {
+		platform_driver_unregister(&vspm_if_driver);
+		return -ENOSYS;
+	}
+
 	misc_register(&misc);
-	dev = misc.this_device;
-	dev->coherent_dma_mask = ~0;
 
 	return 0;
 }
@@ -976,6 +1013,8 @@ static int vspm_if_init(void)
 static void vspm_if_exit(void)
 {
 	misc_deregister(&misc);
+
+	platform_driver_unregister(&vspm_if_driver);
 }
 
 module_init(vspm_if_init);

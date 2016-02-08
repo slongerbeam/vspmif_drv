@@ -64,7 +64,7 @@
 
 #include <linux/sched.h>
 
-extern struct device *dev;
+extern struct platform_device *g_pdev;
 
 /* define macro */
 #define IPRINT(fmt, args...) \
