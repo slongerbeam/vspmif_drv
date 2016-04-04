@@ -66,6 +66,12 @@
 
 extern struct platform_device *g_pdev;
 
+/* define assigned memory size */
+#define VSPM_IF_MEM_SIZE			(24576)
+#define VSPM_IF_RPF_CLUT_SIZE		(2048)
+#define VSPM_IF_HGO_SIZE			(1280)
+#define VSPM_IF_HGT_SIZE			(1024)
+
 /* define macro */
 #define IPRINT(fmt, args...) \
 	pr_info("vspm_if:%d: " fmt, current->pid, ##args)
@@ -95,11 +101,7 @@ struct vspm_if_entry_data_t {
 			/* input image settings */
 			struct vspm_entry_vsp_in {
 				struct vsp_src_t in;
-				struct vspm_entry_vsp_in_clut {
-					struct vsp_dl_t clut;
-					dma_addr_t hard_addr;
-					void *virt_addr;
-				} clut;
+				struct vsp_dl_t clut;
 				struct vspm_entry_vsp_in_alpha {
 					struct vsp_alpha_unit_t alpha;
 					struct vsp_irop_unit_t irop;
@@ -130,24 +132,21 @@ struct vspm_if_entry_data_t {
 				struct vsp_hsi_t hsi;
 				struct vspm_entry_vsp_hgo {
 					struct vsp_hgo_t hgo;
-					dma_addr_t hard_addr;
-					void *virt_addr;
 					void *user_addr;
 				} hgo;
 				struct vspm_entry_vsp_hgt {
 					struct vsp_hgt_t hgt;
-					dma_addr_t hard_addr;
-					void *virt_addr;
 					void *user_addr;
 				} hgt;
 				struct vsp_shp_t shp;
 				struct vsp_drc_t drc;
 			} ctrl;
-			/* display list settings */
-			struct vspm_entry_vsp_dl {
+			/* memory settings */
+			struct vspm_entry_vsp_mem {
 				dma_addr_t hard_addr;
 				void *virt_addr;
-			} dl;
+				unsigned long offset;
+			} mem;
 		} vsp;
 		struct vspm_entry_fdp {
 			/* parameter to FDP processing */
@@ -171,26 +170,18 @@ struct vspm_if_entry_data_t {
 struct vspm_if_cb_data_t {
 	struct list_head list;
 	struct vspm_if_cb_rsp_t rsp;
-	struct vspm_cb_vsp_in {
-		dma_addr_t hard_addr;
-		void *virt_addr;
-		size_t size;
-	} vsp_in[5];
 	struct vspm_cb_vsp_hgo {
-		dma_addr_t hard_addr;
 		void *virt_addr;
 		void *user_addr;
 	} vsp_hgo;
 	struct vspm_cb_vsp_hgt {
-		dma_addr_t hard_addr;
 		void *virt_addr;
 		void *user_addr;
 	} vsp_hgt;
-	struct vspm_cb_vsp_dl {
+	struct vsp_cb_vsp_mem {
 		dma_addr_t hard_addr;
 		void *virt_addr;
-		size_t size;
-	} vsp_dl;
+	} vsp_mem;
 };
 
 /* private data structure */

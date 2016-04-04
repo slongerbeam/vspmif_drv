@@ -71,54 +71,44 @@
 #include "vspm_if_local.h"
 
 static int set_vsp_src_clut_par(
-	struct vspm_entry_vsp_in_clut *clut, struct vsp_dl_t *src)
+	struct vsp_dl_t *clut,
+	struct vsp_dl_t *src,
+	struct vspm_entry_vsp_mem *mem)
 {
-	dma_addr_t hard_addr;
-	void *virt_addr;
+	unsigned long tmp_addr;
 
 	/* copy vsp_dl_t parameter */
 	if (copy_from_user(
-			&clut->clut,
+			clut,
 			(void __user *)src,
 			sizeof(struct vsp_dl_t))) {
 		EPRINT("failed to copy of vsp_dl_t\n");
 		return -EFAULT;
 	}
 
-	if ((clut->clut.virt_addr != NULL) &&
-		(clut->clut.tbl_num > 0) &&
-		(clut->clut.tbl_num <= 256)) {
-		/* allocate memory */
-		virt_addr = dma_alloc_coherent(
-			&g_pdev->dev,
-			clut->clut.tbl_num * 8,
-			&hard_addr,
-			GFP_KERNEL | GFP_DMA);
-		if (virt_addr == NULL) {
-			EPRINT("failed to allocate memory\n");
-			return -EFAULT;
-		}
+	if ((clut->virt_addr != NULL) &&
+		(clut->tbl_num > 0) &&
+		(clut->tbl_num <= 256)) {
+		tmp_addr =
+			(unsigned long)mem->virt_addr + mem->offset;
 
 		/* copy color table */
 		if (copy_from_user(
-				virt_addr,
-				(void __user *)clut->clut.virt_addr,
-				clut->clut.tbl_num * 8)) {
+				(void *)tmp_addr,
+				(void __user *)clut->virt_addr,
+				clut->tbl_num * 8)) {
 			EPRINT("failed to copy of color table\n");
-			dma_free_coherent(
-				&g_pdev->dev,
-				clut->clut.tbl_num * 8,
-				virt_addr,
-				hard_addr);
 			return -EFAULT;
 		}
 
 		/* set parameter */
-		clut->clut.hard_addr = (void *)hard_addr;
-		clut->clut.virt_addr = virt_addr;
+		clut->virt_addr = (void *)tmp_addr;
+		tmp_addr =
+			(unsigned long)mem->hard_addr + mem->offset;
+		clut->hard_addr = (void *)tmp_addr;
 
-		clut->hard_addr = hard_addr;
-		clut->virt_addr = virt_addr;
+		/* increment memory offset */
+		mem->offset += VSPM_IF_RPF_CLUT_SIZE;
 	}
 
 	return 0;
@@ -176,7 +166,10 @@ static int set_vsp_src_alpha_par(
 	return 0;
 }
 
-static int set_vsp_src_par(struct vspm_entry_vsp_in *in, struct vsp_src_t *src)
+static int set_vsp_src_par(
+	struct vspm_entry_vsp_in *in,
+	struct vsp_src_t *src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	int ercd;
 
@@ -191,10 +184,10 @@ static int set_vsp_src_par(struct vspm_entry_vsp_in *in, struct vsp_src_t *src)
 
 	/* copy vsp_dl_t parameter */
 	if (in->in.clut) {
-		ercd = set_vsp_src_clut_par(&in->clut, in->in.clut);
+		ercd = set_vsp_src_clut_par(&in->clut, in->in.clut, mem);
 		if (ercd)
 			return ercd;
-		in->in.clut = &in->clut.clut;
+		in->in.clut = &in->clut;
 	}
 
 	/* copy vsp_alpha_unit_t parameter */
@@ -315,10 +308,10 @@ static int set_vsp_bru_par(
 }
 
 static int set_vsp_hgo_par(
-	struct vspm_entry_vsp_hgo *hgo, struct vsp_hgo_t *src)
+	struct vspm_entry_vsp_hgo *hgo,
+	struct vsp_hgo_t *src,
+	struct vspm_entry_vsp_mem *mem)
 {
-	dma_addr_t hard_addr;
-	void *virt_addr;
 	unsigned long tmp_addr;
 
 	/* copy vsp_hgo_t parameter */
@@ -331,31 +324,23 @@ static int set_vsp_hgo_par(
 	}
 	hgo->user_addr = hgo->hgo.virt_addr;
 
-	/* allocate memory */
-	virt_addr = dma_alloc_coherent(
-		&g_pdev->dev, 1088, &hard_addr, GFP_KERNEL | GFP_DMA);
-	if (virt_addr == NULL) {
-		EPRINT("failed to allocate memory\n");
-		return -EFAULT;
-	}
-
 	/* set parameter */
-	tmp_addr = (unsigned long)(hard_addr + 255) >> 8;
-	hgo->hgo.hard_addr = (void *)(tmp_addr << 8);
-	tmp_addr = (unsigned long)(virt_addr + 255) >> 8;
-	hgo->hgo.virt_addr = (void *)(tmp_addr << 8);
+	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	hgo->hgo.hard_addr = (void *)tmp_addr;
+	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	hgo->hgo.virt_addr = (void *)tmp_addr;
 
-	hgo->hard_addr = hard_addr;
-	hgo->virt_addr = virt_addr;
+	/* increment memory offset */
+	mem->offset += VSPM_IF_HGO_SIZE;
 
 	return 0;
 }
 
 static int set_vsp_hgt_par(
-	struct vspm_entry_vsp_hgt *hgt, struct vsp_hgt_t *src)
+	struct vspm_entry_vsp_hgt *hgt,
+	struct vsp_hgt_t *src,
+	struct vspm_entry_vsp_mem *mem)
 {
-	dma_addr_t hard_addr;
-	void *virt_addr;
 	unsigned long tmp_addr;
 
 	/* copy vsp_hgt_t parameter */
@@ -368,28 +353,22 @@ static int set_vsp_hgt_par(
 	}
 	hgt->user_addr = hgt->hgt.virt_addr;
 
-	/* allocate memory */
-	virt_addr = dma_alloc_coherent(
-		&g_pdev->dev, 800, &hard_addr, GFP_KERNEL | GFP_DMA);
-	if (virt_addr == NULL) {
-		EPRINT("failed to allocate memory\n");
-		return -EFAULT;
-	}
-
 	/* set parameter */
-	tmp_addr = (unsigned long)(hard_addr + 255) >> 8;
-	hgt->hgt.hard_addr = (void *)(tmp_addr << 8);
-	tmp_addr = (unsigned long)(virt_addr + 255) >> 8;
-	hgt->hgt.virt_addr = (void *)(tmp_addr << 8);
+	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	hgt->hgt.hard_addr = (void *)tmp_addr;
+	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	hgt->hgt.virt_addr = (void *)tmp_addr;
 
-	hgt->hard_addr = hard_addr;
-	hgt->virt_addr = virt_addr;
+	/* increment memory offset */
+	mem->offset += VSPM_IF_HGT_SIZE;
 
 	return 0;
 }
 
 static int set_vsp_ctrl_par(
-	struct vspm_entry_vsp_ctrl *ctrl, struct vsp_ctrl_t *src)
+	struct vspm_entry_vsp_ctrl *ctrl,
+	struct vsp_ctrl_t *src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	int ercd;
 
@@ -484,7 +463,7 @@ static int set_vsp_ctrl_par(
 
 	/* copy vsp_hgo_t parameter */
 	if (ctrl->ctrl.hgo) {
-		ercd = set_vsp_hgo_par(&ctrl->hgo, ctrl->ctrl.hgo);
+		ercd = set_vsp_hgo_par(&ctrl->hgo, ctrl->ctrl.hgo, mem);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgo = &ctrl->hgo.hgo;
@@ -492,7 +471,7 @@ static int set_vsp_ctrl_par(
 
 	/* copy vsp_hgt_t parameter */
 	if (ctrl->ctrl.hgt) {
-		ercd = set_vsp_hgt_par(&ctrl->hgt, ctrl->ctrl.hgt);
+		ercd = set_vsp_hgt_par(&ctrl->hgt, ctrl->ctrl.hgt, mem);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgt = &ctrl->hgt.hgt;
@@ -528,52 +507,12 @@ static int set_vsp_ctrl_par(
 
 int free_vsp_par(struct vspm_entry_vsp *vsp)
 {
-	struct vspm_entry_vsp_in *in = &vsp->in[0];
-	struct vspm_entry_vsp_ctrl *ctrl = &vsp->ctrl;
-
-	int i;
-
-	if (vsp->dl.virt_addr != NULL) {
+	if (vsp->mem.virt_addr != NULL) {
 		dma_free_coherent(
 			&g_pdev->dev,
-			vsp->par.dl_par.tbl_num * 8,
-			vsp->dl.virt_addr,
-			vsp->dl.hard_addr);
-		vsp->dl.virt_addr = NULL;
-		vsp->dl.hard_addr = 0;
-	}
-
-	for (i = 0; i < 5; i++) {
-		if (in->clut.virt_addr != NULL) {
-			dma_free_coherent(
-				&g_pdev->dev,
-				in->clut.clut.tbl_num * 8,
-				in->clut.virt_addr,
-				in->clut.hard_addr);
-			in->clut.virt_addr = NULL;
-			in->clut.hard_addr = 0;
-		}
-		in++;
-	}
-
-	if (ctrl->hgo.virt_addr != NULL) {
-		dma_free_coherent(
-			&g_pdev->dev,
-			1088,
-			ctrl->hgo.virt_addr,
-			ctrl->hgo.hard_addr);
-		ctrl->hgo.virt_addr = NULL;
-		ctrl->hgo.hard_addr = 0;
-	}
-
-	if (ctrl->hgt.virt_addr != NULL) {
-		dma_free_coherent(
-			&g_pdev->dev,
-			800,
-			ctrl->hgt.virt_addr,
-			ctrl->hgt.hard_addr);
-		ctrl->hgt.virt_addr = NULL;
-		ctrl->hgt.hard_addr = 0;
+			VSPM_IF_MEM_SIZE,
+			vsp->mem.virt_addr,
+			vsp->mem.hard_addr);
 	}
 
 	return 0;
@@ -588,6 +527,7 @@ int set_vsp_par(
 	struct vsp_dl_t *dl_par = &vsp->par.dl_par;
 	dma_addr_t hard_addr;
 	void *virt_addr;
+	unsigned long tmp_addr;
 
 	int ercd = 0;
 
@@ -602,32 +542,22 @@ int set_vsp_par(
 		return -EFAULT;
 	}
 
-	/* allocate memory for display list */
-	if ((dl_par->tbl_num > 0) && (dl_par->tbl_num < 16384)) {
-		/* allocate memory */
-		virt_addr = dma_alloc_coherent(
-			&g_pdev->dev,
-			dl_par->tbl_num * 8,
-			&hard_addr,
-			GFP_KERNEL | GFP_DMA);
-		if (virt_addr == NULL) {
-			EPRINT("failed to allocate memory\n");
-			return -EFAULT;
-		}
-
-		/* set parameter */
-		dl_par->hard_addr = (void *)hard_addr;
-		dl_par->virt_addr = virt_addr;
-
-		vsp->dl.hard_addr = hard_addr;
-		vsp->dl.virt_addr = virt_addr;
+	/* allocate memory */
+	virt_addr = dma_alloc_coherent(
+		&g_pdev->dev, VSPM_IF_MEM_SIZE, &hard_addr, GFP_KERNEL);
+	if (virt_addr == NULL) {
+		EPRINT("failed to allocate memory\n");
+		return -EFAULT;
 	}
+
+	vsp->mem.hard_addr = hard_addr;
+	vsp->mem.virt_addr = virt_addr;
 
 	/* copy vsp_src_t parameter */
 	for (i = 0; i < 5; i++) {
 		if (vsp->par.src_par[i]) {
 			ercd = set_vsp_src_par(
-				&vsp->in[i], vsp->par.src_par[i]);
+				&vsp->in[i], vsp->par.src_par[i], &vsp->mem);
 			if (ercd)
 				goto err_exit;
 			vsp->par.src_par[i] = &vsp->in[i].in;
@@ -644,11 +574,19 @@ int set_vsp_par(
 
 	/* copy vsp_ctrl_t parameter */
 	if (vsp->par.ctrl_par) {
-		ercd = set_vsp_ctrl_par(&vsp->ctrl, vsp->par.ctrl_par);
+		ercd = set_vsp_ctrl_par(
+			&vsp->ctrl, vsp->par.ctrl_par, &vsp->mem);
 		if (ercd)
 			goto err_exit;
 		vsp->par.ctrl_par = &vsp->ctrl.ctrl;
 	}
+
+	/* assign memory for display list */
+	tmp_addr = (unsigned long)hard_addr + vsp->mem.offset;
+	dl_par->hard_addr = (void *)tmp_addr;
+	tmp_addr = (unsigned long)virt_addr + vsp->mem.offset;
+	dl_par->virt_addr = (void *)tmp_addr;
+	dl_par->tbl_num = (VSPM_IF_MEM_SIZE - vsp->mem.offset) >> 3;
 
 	return 0;
 
@@ -659,40 +597,12 @@ err_exit:
 
 int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 {
-	int i;
-
-	if (cb_data->vsp_dl.virt_addr != NULL) {
+	if (cb_data->vsp_mem.virt_addr != NULL) {
 		dma_free_coherent(
 			&g_pdev->dev,
-			cb_data->vsp_dl.size,
-			cb_data->vsp_dl.virt_addr,
-			cb_data->vsp_dl.hard_addr);
-	}
-
-	for (i = 0; i < 5; i++) {
-		if (cb_data->vsp_in[i].virt_addr != NULL) {
-			dma_free_coherent(
-				&g_pdev->dev,
-				cb_data->vsp_in[i].size,
-				cb_data->vsp_in[i].virt_addr,
-				cb_data->vsp_in[i].hard_addr);
-		}
-	}
-
-	if (cb_data->vsp_hgo.virt_addr != NULL) {
-		dma_free_coherent(
-			&g_pdev->dev,
-			1088,
-			cb_data->vsp_hgo.virt_addr,
-			cb_data->vsp_hgo.hard_addr);
-	}
-
-	if (cb_data->vsp_hgt.virt_addr != NULL) {
-		dma_free_coherent(
-			&g_pdev->dev,
-			800,
-			cb_data->vsp_hgt.virt_addr,
-			cb_data->vsp_hgt.hard_addr);
+			VSPM_IF_MEM_SIZE,
+			cb_data->vsp_mem.virt_addr,
+			cb_data->vsp_mem.hard_addr);
 	}
 
 	return 0;
@@ -702,41 +612,24 @@ void set_cb_rsp_vsp(
 	struct vspm_if_cb_data_t *cb_data,
 	struct vspm_if_entry_data_t *entry_data)
 {
-	struct vspm_entry_vsp_in *in =
-		&entry_data->ip_par.vsp.in[0];
 	struct vspm_entry_vsp_hgo *hgo =
 		&entry_data->ip_par.vsp.ctrl.hgo;
 	struct vspm_entry_vsp_hgt *hgt =
 		&entry_data->ip_par.vsp.ctrl.hgt;
-	struct vspm_entry_vsp_dl *dl =
-		&entry_data->ip_par.vsp.dl;
-
-	int i;
-
-	/* inherits display list buffer address */
-	cb_data->vsp_dl.size =
-		(size_t)(entry_data->ip_par.vsp.par.dl_par.tbl_num * 8);
-	cb_data->vsp_dl.hard_addr = dl->hard_addr;
-	cb_data->vsp_dl.virt_addr = dl->virt_addr;
-
-	/* inherits RPF(clut) buffer address */
-	for (i = 0; i < 5; i++) {
-		cb_data->vsp_in[i].size =
-			(size_t)(in->clut.clut.tbl_num * 8);
-		cb_data->vsp_in[i].hard_addr = in->clut.hard_addr;
-		cb_data->vsp_in[i].virt_addr = in->clut.virt_addr;
-		in++;
-	}
+	struct vspm_entry_vsp_mem *mem =
+		&entry_data->ip_par.vsp.mem;
 
 	/* inherits histogram(HGO) buffer address */
-	cb_data->vsp_hgo.hard_addr = hgo->hard_addr;
-	cb_data->vsp_hgo.virt_addr = hgo->virt_addr;
+	cb_data->vsp_hgo.virt_addr = hgo->hgo.virt_addr;
 	cb_data->vsp_hgo.user_addr = hgo->user_addr;
 
 	/* inherits histogram(HGT) buffer address */
-	cb_data->vsp_hgt.hard_addr = hgt->hard_addr;
-	cb_data->vsp_hgt.virt_addr = hgt->virt_addr;
+	cb_data->vsp_hgt.virt_addr = hgt->hgt.virt_addr;
 	cb_data->vsp_hgt.user_addr = hgt->user_addr;
+
+	/* inherits memory address */
+	cb_data->vsp_mem.hard_addr = mem->hard_addr;
+	cb_data->vsp_mem.virt_addr = mem->virt_addr;
 }
 
 static int set_fdp_ref_par(
@@ -877,11 +770,12 @@ int set_fdp_par(
 }
 
 static int set_compat_vsp_src_clut_par(
-	struct vspm_entry_vsp_in_clut *clut, unsigned int src)
+	struct vsp_dl_t *clut,
+	unsigned int src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	struct compat_vsp_dl_t compat_dl_par;
-	dma_addr_t hard_addr;
-	void *virt_addr;
+	unsigned long tmp_addr;
 
 	/* copy */
 	if (copy_from_user(
@@ -895,38 +789,25 @@ static int set_compat_vsp_src_clut_par(
 	if ((compat_dl_par.virt_addr != 0) &&
 		(compat_dl_par.tbl_num > 0) &&
 		(compat_dl_par.tbl_num <= 256)) {
-		/* allocate memory */
-		virt_addr = dma_alloc_coherent(
-			&g_pdev->dev,
-			compat_dl_par.tbl_num * 8,
-			&hard_addr,
-			GFP_KERNEL | GFP_DMA);
-		if (virt_addr == NULL) {
-			EPRINT("failed to allocate memory\n");
-			return -EFAULT;
-		}
+		tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
 
 		/* copy color table */
 		if (copy_from_user(
-				virt_addr,
+				(void *)tmp_addr,
 				VSPM_IF_INT_TO_UP(compat_dl_par.virt_addr),
 				compat_dl_par.tbl_num * 8)) {
 			EPRINT("failed to copy color table\n");
-			dma_free_coherent(
-				&g_pdev->dev,
-				compat_dl_par.tbl_num * 8,
-				virt_addr,
-				hard_addr);
 			return -EFAULT;
 		}
 
 		/* set parameter */
-		clut->clut.hard_addr = (void *)hard_addr;
-		clut->clut.virt_addr = virt_addr;
-		clut->clut.tbl_num = compat_dl_par.tbl_num;
+		clut->virt_addr = (void *)tmp_addr;
+		tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+		clut->hard_addr = (void *)tmp_addr;
+		clut->tbl_num = compat_dl_par.tbl_num;
 
-		clut->hard_addr = hard_addr;
-		clut->virt_addr = virt_addr;
+		/* increment memory offset */
+		mem->offset += VSPM_IF_RPF_CLUT_SIZE;
 	}
 
 	return 0;
@@ -1035,7 +916,9 @@ static int set_compat_vsp_src_alpha_par(
 }
 
 static int set_compat_vsp_src_par(
-	struct vspm_entry_vsp_in *in, unsigned int src)
+	struct vspm_entry_vsp_in *in,
+	unsigned int src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	struct compat_vsp_src_t compat_vsp_src;
 	int ercd;
@@ -1077,10 +960,10 @@ static int set_compat_vsp_src_par(
 	/* copy vsp_dl_t parameter */
 	if (compat_vsp_src.clut) {
 		ercd = set_compat_vsp_src_clut_par(
-			&in->clut, compat_vsp_src.clut);
+			&in->clut, compat_vsp_src.clut, mem);
 		if (ercd)
 			return ercd;
-		in->in.clut = &in->clut.clut;
+		in->in.clut = &in->clut;
 	}
 
 	/* copy vsp_alpha_unit_t parameter */
@@ -1433,11 +1316,11 @@ static int set_compat_vsp_bru_par(
 }
 
 static int set_compat_vsp_hgo_par(
-	struct vspm_entry_vsp_hgo *hgo, unsigned int src)
+	struct vspm_entry_vsp_hgo *hgo,
+	unsigned int src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	struct compat_vsp_hgo_t compat_hgo;
-	dma_addr_t hard_addr;
-	void *virt_addr;
 	unsigned long tmp_addr;
 
 	/* copy */
@@ -1449,19 +1332,11 @@ static int set_compat_vsp_hgo_par(
 		return -EFAULT;
 	}
 
-	/* allocate memory */
-	virt_addr = dma_alloc_coherent(
-		&g_pdev->dev, 1088, &hard_addr, GFP_KERNEL | GFP_DMA);
-	if (virt_addr == NULL) {
-		EPRINT("failed to allocate memory\n");
-		return -EFAULT;
-	}
-
 	/* set */
-	tmp_addr = (unsigned long)(hard_addr + 255) >> 8;
-	hgo->hgo.hard_addr = (void *)(tmp_addr << 8);
-	tmp_addr = (unsigned long)(virt_addr + 255) >> 8;
-	hgo->hgo.virt_addr = (void *)(tmp_addr << 8);
+	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	hgo->hgo.hard_addr = (void *)tmp_addr;
+	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	hgo->hgo.virt_addr = (void *)tmp_addr;
 
 	hgo->hgo.width = compat_hgo.width;
 	hgo->hgo.height = compat_hgo.height;
@@ -1474,19 +1349,20 @@ static int set_compat_vsp_hgo_par(
 	hgo->hgo.y_skip = compat_hgo.y_skip;
 	hgo->hgo.sampling = (unsigned long)compat_hgo.sampling;
 
-	hgo->hard_addr = hard_addr;
-	hgo->virt_addr = virt_addr;
 	hgo->user_addr = VSPM_IF_INT_TO_VP(compat_hgo.virt_addr);
+
+	/* increment memory offset */
+	mem->offset += VSPM_IF_HGO_SIZE;
 
 	return 0;
 }
 
 static int set_compat_vsp_hgt_par(
-	struct vspm_entry_vsp_hgt *hgt, unsigned int src)
+	struct vspm_entry_vsp_hgt *hgt,
+	unsigned int src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	struct compat_vsp_hgt_t compat_hgt;
-	dma_addr_t hard_addr;
-	void *virt_addr;
 	unsigned long tmp_addr;
 
 	int i;
@@ -1500,19 +1376,11 @@ static int set_compat_vsp_hgt_par(
 		return -EFAULT;
 	}
 
-	/* allocate memory */
-	virt_addr = dma_alloc_coherent(
-		&g_pdev->dev, 800, &hard_addr, GFP_KERNEL | GFP_DMA);
-	if (virt_addr == NULL) {
-		EPRINT("failed to allocate memory\n");
-		return -EFAULT;
-	}
-
 	/* set */
-	tmp_addr = (unsigned long)(hard_addr + 255) >> 8;
-	hgt->hgt.hard_addr = (void *)(tmp_addr << 8);
-	tmp_addr = (unsigned long)(virt_addr + 255) >> 8;
-	hgt->hgt.virt_addr = (void *)(tmp_addr << 8);
+	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	hgt->hgt.hard_addr = (void *)tmp_addr;
+	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	hgt->hgt.virt_addr = (void *)tmp_addr;
 
 	hgt->hgt.width = compat_hgt.width;
 	hgt->hgt.height = compat_hgt.height;
@@ -1526,9 +1394,10 @@ static int set_compat_vsp_hgt_par(
 	}
 	hgt->hgt.sampling = (unsigned long)compat_hgt.sampling;
 
-	hgt->hard_addr = hard_addr;
-	hgt->virt_addr = virt_addr;
 	hgt->user_addr = VSPM_IF_INT_TO_VP(compat_hgt.virt_addr);
+
+	/* increment memory offset */
+	mem->offset += VSPM_IF_HGT_SIZE;
 
 	return 0;
 }
@@ -1589,7 +1458,9 @@ static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int src)
 
 
 static int set_compat_vsp_ctrl_par(
-	struct vspm_entry_vsp_ctrl *ctrl, unsigned int src)
+	struct vspm_entry_vsp_ctrl *ctrl,
+	unsigned int src,
+	struct vspm_entry_vsp_mem *mem)
 {
 	struct compat_vsp_ctrl_t compat_vsp_ctrl;
 	int ercd;
@@ -1661,7 +1532,8 @@ static int set_compat_vsp_ctrl_par(
 
 	/* copy vsp_hgo_t parameter */
 	if (compat_vsp_ctrl.hgo) {
-		ercd = set_compat_vsp_hgo_par(&ctrl->hgo, compat_vsp_ctrl.hgo);
+		ercd = set_compat_vsp_hgo_par(
+			&ctrl->hgo, compat_vsp_ctrl.hgo, mem);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgo = &ctrl->hgo.hgo;
@@ -1669,7 +1541,8 @@ static int set_compat_vsp_ctrl_par(
 
 	/* copy vsp_hgt_t parameter */
 	if (compat_vsp_ctrl.hgt) {
-		ercd = set_compat_vsp_hgt_par(&ctrl->hgt, compat_vsp_ctrl.hgt);
+		ercd = set_compat_vsp_hgt_par(
+			&ctrl->hgt, compat_vsp_ctrl.hgt, mem);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgt = &ctrl->hgt.hgt;
@@ -1702,6 +1575,8 @@ int set_compat_vsp_par(
 	struct compat_vsp_start_t compat_vsp_par;
 	dma_addr_t hard_addr;
 	void *virt_addr;
+	unsigned long tmp_addr;
+
 	int ercd;
 
 	int i;
@@ -1719,34 +1594,24 @@ int set_compat_vsp_par(
 	vsp->par.rpf_order = 0;	/* not used */
 	vsp->par.use_module = (unsigned long)compat_vsp_par.use_module;
 
-	/* allocate memory for display list */
-	if ((compat_vsp_par.dl_par.tbl_num > 0) &&
-		(compat_vsp_par.dl_par.tbl_num < 16384)) {
-		/* allocate memory */
-		virt_addr = dma_alloc_coherent(
-			&g_pdev->dev,
-			compat_vsp_par.dl_par.tbl_num * 8,
-			&hard_addr,
-			GFP_KERNEL | GFP_DMA);
-		if (virt_addr == NULL) {
-			EPRINT("failed to allocate memory\n");
-			return -EFAULT;
-		}
-
-		/* set parameter */
-		vsp->par.dl_par.hard_addr = (void *)hard_addr;
-		vsp->par.dl_par.virt_addr = virt_addr;
-		vsp->par.dl_par.tbl_num = compat_vsp_par.dl_par.tbl_num;
-
-		vsp->dl.hard_addr = hard_addr;
-		vsp->dl.virt_addr = virt_addr;
+	/* allocate memory */
+	virt_addr = dma_alloc_coherent(
+		&g_pdev->dev, VSPM_IF_MEM_SIZE, &hard_addr, GFP_KERNEL);
+	if (virt_addr == NULL) {
+		EPRINT("failed to allocate memory\n");
+		return -EFAULT;
 	}
+
+	vsp->mem.hard_addr = hard_addr;
+	vsp->mem.virt_addr = virt_addr;
 
 	/* copy vsp_src_t parameter */
 	for (i = 0; i < 5; i++) {
 		if (compat_vsp_par.src_par[i]) {
 			ercd = set_compat_vsp_src_par(
-				&vsp->in[i], compat_vsp_par.src_par[i]);
+				&vsp->in[i],
+				compat_vsp_par.src_par[i],
+				&vsp->mem);
 			if (ercd)
 				goto err_exit;
 			vsp->par.src_par[i] = &vsp->in[i].in;
@@ -1765,11 +1630,18 @@ int set_compat_vsp_par(
 	/* copy vsp_ctrl_t parameter */
 	if (compat_vsp_par.ctrl_par) {
 		ercd = set_compat_vsp_ctrl_par(
-			&vsp->ctrl, compat_vsp_par.ctrl_par);
+			&vsp->ctrl, compat_vsp_par.ctrl_par, &vsp->mem);
 		if (ercd)
 			goto err_exit;
 		vsp->par.ctrl_par = &vsp->ctrl.ctrl;
 	}
+
+	/* assign memory for display list */
+	tmp_addr = (unsigned long)hard_addr + vsp->mem.offset;
+	vsp->par.dl_par.hard_addr = (void *)tmp_addr;
+	tmp_addr = (unsigned long)virt_addr + vsp->mem.offset;
+	vsp->par.dl_par.virt_addr = (void *)tmp_addr;
+	vsp->par.dl_par.tbl_num = (VSPM_IF_MEM_SIZE - vsp->mem.offset) >> 3;
 
 	return 0;
 
