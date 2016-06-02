@@ -70,10 +70,92 @@
 #include "vspm_if.h"
 #include "vspm_if_local.h"
 
+struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
+{
+	struct vspm_if_work_buff_t *cur_buff = NULL;
+	struct vspm_if_work_buff_t *prev_buff = NULL;
+
+	down(&priv->sem);
+
+	/* search unused work buffer */
+	cur_buff = priv->work_buff;
+	while (cur_buff != NULL) {
+		if (cur_buff->use_flag == 0) {
+			/* set work buffer */
+			cur_buff->use_flag = 1;
+			cur_buff->offset = 0;
+			up(&priv->sem);
+			return cur_buff;
+		}
+
+		prev_buff = cur_buff;
+		cur_buff = cur_buff->next_buff;
+	}
+
+	/* allocate work buffer */
+	cur_buff = kzalloc(sizeof(struct vspm_if_work_buff_t), GFP_KERNEL);
+	if (cur_buff == NULL) {
+		EPRINT("failed to allocate memory\n");
+		up(&priv->sem);
+		return NULL;
+	}
+
+	cur_buff->virt_addr = dma_alloc_coherent(
+		&g_pdev->dev,
+		VSPM_IF_MEM_SIZE,
+		&cur_buff->hard_addr,
+		GFP_KERNEL);
+	if (cur_buff->virt_addr == NULL) {
+		EPRINT("failed to allocate work buffer\n");
+		kfree(cur_buff);
+		up(&priv->sem);
+		return NULL;
+	}
+
+	/* connect work buffer */
+	if (prev_buff == NULL)
+		priv->work_buff = cur_buff;
+	else
+		prev_buff->next_buff = cur_buff;
+
+	/* set work buffer */
+	cur_buff->use_flag = 1;
+	cur_buff->offset = 0;
+	up(&priv->sem);
+
+	return cur_buff;
+}
+
+void release_work_buffers(struct vspm_if_private_t *priv)
+{
+	struct vspm_if_work_buff_t *cur_buff;
+	struct vspm_if_work_buff_t *next_buff;
+
+	down(&priv->sem);
+
+	cur_buff = priv->work_buff;
+	while (cur_buff != NULL) {
+		next_buff = cur_buff->next_buff;
+
+		/* release work buffer */
+		dma_free_coherent(
+			&g_pdev->dev,
+			VSPM_IF_MEM_SIZE,
+			cur_buff->virt_addr,
+			cur_buff->hard_addr);
+
+		kfree(cur_buff);
+
+		cur_buff = next_buff;
+	}
+	priv->work_buff = NULL;
+	up(&priv->sem);
+}
+
 static int set_vsp_src_clut_par(
 	struct vsp_dl_t *clut,
 	struct vsp_dl_t *src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	unsigned long tmp_addr;
 
@@ -90,7 +172,8 @@ static int set_vsp_src_clut_par(
 		(clut->tbl_num > 0) &&
 		(clut->tbl_num <= 256)) {
 		tmp_addr =
-			(unsigned long)mem->virt_addr + mem->offset;
+			(unsigned long)work_buff->virt_addr +
+			(unsigned long)work_buff->offset;
 
 		/* copy color table */
 		if (copy_from_user(
@@ -104,11 +187,12 @@ static int set_vsp_src_clut_par(
 		/* set parameter */
 		clut->virt_addr = (void *)tmp_addr;
 		tmp_addr =
-			(unsigned long)mem->hard_addr + mem->offset;
+			(unsigned long)work_buff->hard_addr +
+			(unsigned long)work_buff->offset;
 		clut->hard_addr = (void *)tmp_addr;
 
 		/* increment memory offset */
-		mem->offset += VSPM_IF_RPF_CLUT_SIZE;
+		work_buff->offset += VSPM_IF_RPF_CLUT_SIZE;
 	}
 
 	return 0;
@@ -169,7 +253,7 @@ static int set_vsp_src_alpha_par(
 static int set_vsp_src_par(
 	struct vspm_entry_vsp_in *in,
 	struct vsp_src_t *src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	int ercd;
 
@@ -184,7 +268,7 @@ static int set_vsp_src_par(
 
 	/* copy vsp_dl_t parameter */
 	if (in->in.clut) {
-		ercd = set_vsp_src_clut_par(&in->clut, in->in.clut, mem);
+		ercd = set_vsp_src_clut_par(&in->clut, in->in.clut, work_buff);
 		if (ercd)
 			return ercd;
 		in->in.clut = &in->clut;
@@ -310,7 +394,7 @@ static int set_vsp_bru_par(
 static int set_vsp_hgo_par(
 	struct vspm_entry_vsp_hgo *hgo,
 	struct vsp_hgo_t *src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	unsigned long tmp_addr;
 
@@ -325,13 +409,17 @@ static int set_vsp_hgo_par(
 	hgo->user_addr = hgo->hgo.virt_addr;
 
 	/* set parameter */
-	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->hard_addr +
+		(unsigned long)work_buff->offset;
 	hgo->hgo.hard_addr = (void *)tmp_addr;
-	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->virt_addr +
+		(unsigned long)work_buff->offset;
 	hgo->hgo.virt_addr = (void *)tmp_addr;
 
 	/* increment memory offset */
-	mem->offset += VSPM_IF_HGO_SIZE;
+	work_buff->offset += VSPM_IF_HGO_SIZE;
 
 	return 0;
 }
@@ -339,7 +427,7 @@ static int set_vsp_hgo_par(
 static int set_vsp_hgt_par(
 	struct vspm_entry_vsp_hgt *hgt,
 	struct vsp_hgt_t *src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	unsigned long tmp_addr;
 
@@ -354,13 +442,17 @@ static int set_vsp_hgt_par(
 	hgt->user_addr = hgt->hgt.virt_addr;
 
 	/* set parameter */
-	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->hard_addr +
+		(unsigned long)work_buff->offset;
 	hgt->hgt.hard_addr = (void *)tmp_addr;
-	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->virt_addr +
+		(unsigned long)work_buff->offset;
 	hgt->hgt.virt_addr = (void *)tmp_addr;
 
 	/* increment memory offset */
-	mem->offset += VSPM_IF_HGT_SIZE;
+	work_buff->offset += VSPM_IF_HGT_SIZE;
 
 	return 0;
 }
@@ -368,7 +460,7 @@ static int set_vsp_hgt_par(
 static int set_vsp_ctrl_par(
 	struct vspm_entry_vsp_ctrl *ctrl,
 	struct vsp_ctrl_t *src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	int ercd;
 
@@ -463,7 +555,7 @@ static int set_vsp_ctrl_par(
 
 	/* copy vsp_hgo_t parameter */
 	if (ctrl->ctrl.hgo) {
-		ercd = set_vsp_hgo_par(&ctrl->hgo, ctrl->ctrl.hgo, mem);
+		ercd = set_vsp_hgo_par(&ctrl->hgo, ctrl->ctrl.hgo, work_buff);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgo = &ctrl->hgo.hgo;
@@ -471,7 +563,7 @@ static int set_vsp_ctrl_par(
 
 	/* copy vsp_hgt_t parameter */
 	if (ctrl->ctrl.hgt) {
-		ercd = set_vsp_hgt_par(&ctrl->hgt, ctrl->ctrl.hgt, mem);
+		ercd = set_vsp_hgt_par(&ctrl->hgt, ctrl->ctrl.hgt, work_buff);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgt = &ctrl->hgt.hgt;
@@ -507,13 +599,8 @@ static int set_vsp_ctrl_par(
 
 int free_vsp_par(struct vspm_entry_vsp *vsp)
 {
-	if (vsp->mem.virt_addr != NULL) {
-		dma_free_coherent(
-			&g_pdev->dev,
-			VSPM_IF_MEM_SIZE,
-			vsp->mem.virt_addr,
-			vsp->mem.hard_addr);
-	}
+	if (vsp->work_buff != NULL)
+		vsp->work_buff->use_flag = 0;
 
 	return 0;
 }
@@ -525,8 +612,6 @@ int set_vsp_par(
 	struct vspm_entry_vsp *vsp = &entry->ip_par.vsp;
 
 	struct vsp_dl_t *dl_par = &vsp->par.dl_par;
-	dma_addr_t hard_addr;
-	void *virt_addr;
 	unsigned long tmp_addr;
 
 	int ercd = 0;
@@ -542,22 +627,18 @@ int set_vsp_par(
 		return -EFAULT;
 	}
 
-	/* allocate memory */
-	virt_addr = dma_alloc_coherent(
-		&g_pdev->dev, VSPM_IF_MEM_SIZE, &hard_addr, GFP_KERNEL);
-	if (virt_addr == NULL) {
-		EPRINT("failed to allocate memory\n");
+	/* get work buffer */
+	vsp->work_buff = get_work_buffer(entry->priv);
+	if (vsp->work_buff == NULL)
 		return -EFAULT;
-	}
-
-	vsp->mem.hard_addr = hard_addr;
-	vsp->mem.virt_addr = virt_addr;
 
 	/* copy vsp_src_t parameter */
 	for (i = 0; i < 5; i++) {
 		if (vsp->par.src_par[i]) {
 			ercd = set_vsp_src_par(
-				&vsp->in[i], vsp->par.src_par[i], &vsp->mem);
+				&vsp->in[i],
+				vsp->par.src_par[i],
+				vsp->work_buff);
 			if (ercd)
 				goto err_exit;
 			vsp->par.src_par[i] = &vsp->in[i].in;
@@ -575,18 +656,22 @@ int set_vsp_par(
 	/* copy vsp_ctrl_t parameter */
 	if (vsp->par.ctrl_par) {
 		ercd = set_vsp_ctrl_par(
-			&vsp->ctrl, vsp->par.ctrl_par, &vsp->mem);
+			&vsp->ctrl, vsp->par.ctrl_par, vsp->work_buff);
 		if (ercd)
 			goto err_exit;
 		vsp->par.ctrl_par = &vsp->ctrl.ctrl;
 	}
 
 	/* assign memory for display list */
-	tmp_addr = (unsigned long)hard_addr + vsp->mem.offset;
+	tmp_addr =
+		(unsigned long)vsp->work_buff->hard_addr +
+		(unsigned long)vsp->work_buff->offset;
 	dl_par->hard_addr = (void *)tmp_addr;
-	tmp_addr = (unsigned long)virt_addr + vsp->mem.offset;
+	tmp_addr =
+		(unsigned long)vsp->work_buff->virt_addr +
+		(unsigned long)vsp->work_buff->offset;
 	dl_par->virt_addr = (void *)tmp_addr;
-	dl_par->tbl_num = (VSPM_IF_MEM_SIZE - vsp->mem.offset) >> 3;
+	dl_par->tbl_num = (VSPM_IF_MEM_SIZE - vsp->work_buff->offset) >> 3;
 
 	return 0;
 
@@ -597,13 +682,8 @@ err_exit:
 
 int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 {
-	if (cb_data->vsp_mem.virt_addr != NULL) {
-		dma_free_coherent(
-			&g_pdev->dev,
-			VSPM_IF_MEM_SIZE,
-			cb_data->vsp_mem.virt_addr,
-			cb_data->vsp_mem.hard_addr);
-	}
+	if (cb_data->vsp_work_buff != NULL)
+		cb_data->vsp_work_buff->use_flag = 0;
 
 	return 0;
 }
@@ -616,8 +696,6 @@ void set_cb_rsp_vsp(
 		&entry_data->ip_par.vsp.ctrl.hgo;
 	struct vspm_entry_vsp_hgt *hgt =
 		&entry_data->ip_par.vsp.ctrl.hgt;
-	struct vspm_entry_vsp_mem *mem =
-		&entry_data->ip_par.vsp.mem;
 
 	/* inherits histogram(HGO) buffer address */
 	cb_data->vsp_hgo.virt_addr = hgo->hgo.virt_addr;
@@ -627,9 +705,8 @@ void set_cb_rsp_vsp(
 	cb_data->vsp_hgt.virt_addr = hgt->hgt.virt_addr;
 	cb_data->vsp_hgt.user_addr = hgt->user_addr;
 
-	/* inherits memory address */
-	cb_data->vsp_mem.hard_addr = mem->hard_addr;
-	cb_data->vsp_mem.virt_addr = mem->virt_addr;
+	/* inherits work buffer */
+	cb_data->vsp_work_buff = entry_data->ip_par.vsp.work_buff;
 }
 
 static int set_fdp_ref_par(
@@ -772,7 +849,7 @@ int set_fdp_par(
 static int set_compat_vsp_src_clut_par(
 	struct vsp_dl_t *clut,
 	unsigned int src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	struct compat_vsp_dl_t compat_dl_par;
 	unsigned long tmp_addr;
@@ -789,7 +866,9 @@ static int set_compat_vsp_src_clut_par(
 	if ((compat_dl_par.virt_addr != 0) &&
 		(compat_dl_par.tbl_num > 0) &&
 		(compat_dl_par.tbl_num <= 256)) {
-		tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+		tmp_addr =
+			(unsigned long)work_buff->virt_addr +
+			(unsigned long)work_buff->offset;
 
 		/* copy color table */
 		if (copy_from_user(
@@ -802,12 +881,14 @@ static int set_compat_vsp_src_clut_par(
 
 		/* set parameter */
 		clut->virt_addr = (void *)tmp_addr;
-		tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+		tmp_addr =
+			(unsigned long)work_buff->hard_addr +
+			(unsigned long)work_buff->offset;
 		clut->hard_addr = (void *)tmp_addr;
 		clut->tbl_num = compat_dl_par.tbl_num;
 
 		/* increment memory offset */
-		mem->offset += VSPM_IF_RPF_CLUT_SIZE;
+		work_buff->offset += VSPM_IF_RPF_CLUT_SIZE;
 	}
 
 	return 0;
@@ -918,7 +999,7 @@ static int set_compat_vsp_src_alpha_par(
 static int set_compat_vsp_src_par(
 	struct vspm_entry_vsp_in *in,
 	unsigned int src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	struct compat_vsp_src_t compat_vsp_src;
 	int ercd;
@@ -960,7 +1041,7 @@ static int set_compat_vsp_src_par(
 	/* copy vsp_dl_t parameter */
 	if (compat_vsp_src.clut) {
 		ercd = set_compat_vsp_src_clut_par(
-			&in->clut, compat_vsp_src.clut, mem);
+			&in->clut, compat_vsp_src.clut, work_buff);
 		if (ercd)
 			return ercd;
 		in->in.clut = &in->clut;
@@ -1318,7 +1399,7 @@ static int set_compat_vsp_bru_par(
 static int set_compat_vsp_hgo_par(
 	struct vspm_entry_vsp_hgo *hgo,
 	unsigned int src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	struct compat_vsp_hgo_t compat_hgo;
 	unsigned long tmp_addr;
@@ -1333,9 +1414,13 @@ static int set_compat_vsp_hgo_par(
 	}
 
 	/* set */
-	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->hard_addr +
+		(unsigned long)work_buff->offset;
 	hgo->hgo.hard_addr = (void *)tmp_addr;
-	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->virt_addr +
+		(unsigned long)work_buff->offset;
 	hgo->hgo.virt_addr = (void *)tmp_addr;
 
 	hgo->hgo.width = compat_hgo.width;
@@ -1352,7 +1437,7 @@ static int set_compat_vsp_hgo_par(
 	hgo->user_addr = VSPM_IF_INT_TO_VP(compat_hgo.virt_addr);
 
 	/* increment memory offset */
-	mem->offset += VSPM_IF_HGO_SIZE;
+	work_buff->offset += VSPM_IF_HGO_SIZE;
 
 	return 0;
 }
@@ -1360,7 +1445,7 @@ static int set_compat_vsp_hgo_par(
 static int set_compat_vsp_hgt_par(
 	struct vspm_entry_vsp_hgt *hgt,
 	unsigned int src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	struct compat_vsp_hgt_t compat_hgt;
 	unsigned long tmp_addr;
@@ -1377,9 +1462,13 @@ static int set_compat_vsp_hgt_par(
 	}
 
 	/* set */
-	tmp_addr = (unsigned long)mem->hard_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->hard_addr +
+		(unsigned long)work_buff->offset;
 	hgt->hgt.hard_addr = (void *)tmp_addr;
-	tmp_addr = (unsigned long)mem->virt_addr + mem->offset;
+	tmp_addr =
+		(unsigned long)work_buff->virt_addr +
+		(unsigned long)work_buff->offset;
 	hgt->hgt.virt_addr = (void *)tmp_addr;
 
 	hgt->hgt.width = compat_hgt.width;
@@ -1397,7 +1486,7 @@ static int set_compat_vsp_hgt_par(
 	hgt->user_addr = VSPM_IF_INT_TO_VP(compat_hgt.virt_addr);
 
 	/* increment memory offset */
-	mem->offset += VSPM_IF_HGT_SIZE;
+	work_buff->offset += VSPM_IF_HGT_SIZE;
 
 	return 0;
 }
@@ -1460,7 +1549,7 @@ static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int src)
 static int set_compat_vsp_ctrl_par(
 	struct vspm_entry_vsp_ctrl *ctrl,
 	unsigned int src,
-	struct vspm_entry_vsp_mem *mem)
+	struct vspm_if_work_buff_t *work_buff)
 {
 	struct compat_vsp_ctrl_t compat_vsp_ctrl;
 	int ercd;
@@ -1533,7 +1622,7 @@ static int set_compat_vsp_ctrl_par(
 	/* copy vsp_hgo_t parameter */
 	if (compat_vsp_ctrl.hgo) {
 		ercd = set_compat_vsp_hgo_par(
-			&ctrl->hgo, compat_vsp_ctrl.hgo, mem);
+			&ctrl->hgo, compat_vsp_ctrl.hgo, work_buff);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgo = &ctrl->hgo.hgo;
@@ -1542,7 +1631,7 @@ static int set_compat_vsp_ctrl_par(
 	/* copy vsp_hgt_t parameter */
 	if (compat_vsp_ctrl.hgt) {
 		ercd = set_compat_vsp_hgt_par(
-			&ctrl->hgt, compat_vsp_ctrl.hgt, mem);
+			&ctrl->hgt, compat_vsp_ctrl.hgt, work_buff);
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.hgt = &ctrl->hgt.hgt;
@@ -1573,8 +1662,6 @@ int set_compat_vsp_par(
 {
 	struct vspm_entry_vsp *vsp = &entry->ip_par.vsp;
 	struct compat_vsp_start_t compat_vsp_par;
-	dma_addr_t hard_addr;
-	void *virt_addr;
 	unsigned long tmp_addr;
 
 	int ercd;
@@ -1594,16 +1681,10 @@ int set_compat_vsp_par(
 	vsp->par.rpf_order = 0;	/* not used */
 	vsp->par.use_module = (unsigned long)compat_vsp_par.use_module;
 
-	/* allocate memory */
-	virt_addr = dma_alloc_coherent(
-		&g_pdev->dev, VSPM_IF_MEM_SIZE, &hard_addr, GFP_KERNEL);
-	if (virt_addr == NULL) {
-		EPRINT("failed to allocate memory\n");
+	/* get work buffer */
+	vsp->work_buff = get_work_buffer(entry->priv);
+	if (vsp->work_buff == NULL)
 		return -EFAULT;
-	}
-
-	vsp->mem.hard_addr = hard_addr;
-	vsp->mem.virt_addr = virt_addr;
 
 	/* copy vsp_src_t parameter */
 	for (i = 0; i < 5; i++) {
@@ -1611,7 +1692,7 @@ int set_compat_vsp_par(
 			ercd = set_compat_vsp_src_par(
 				&vsp->in[i],
 				compat_vsp_par.src_par[i],
-				&vsp->mem);
+				vsp->work_buff);
 			if (ercd)
 				goto err_exit;
 			vsp->par.src_par[i] = &vsp->in[i].in;
@@ -1630,18 +1711,23 @@ int set_compat_vsp_par(
 	/* copy vsp_ctrl_t parameter */
 	if (compat_vsp_par.ctrl_par) {
 		ercd = set_compat_vsp_ctrl_par(
-			&vsp->ctrl, compat_vsp_par.ctrl_par, &vsp->mem);
+			&vsp->ctrl, compat_vsp_par.ctrl_par, vsp->work_buff);
 		if (ercd)
 			goto err_exit;
 		vsp->par.ctrl_par = &vsp->ctrl.ctrl;
 	}
 
 	/* assign memory for display list */
-	tmp_addr = (unsigned long)hard_addr + vsp->mem.offset;
+	tmp_addr =
+		(unsigned long)vsp->work_buff->hard_addr +
+		(unsigned long)vsp->work_buff->offset;
 	vsp->par.dl_par.hard_addr = (void *)tmp_addr;
-	tmp_addr = (unsigned long)virt_addr + vsp->mem.offset;
+	tmp_addr =
+		(unsigned long)vsp->work_buff->virt_addr +
+		(unsigned long)vsp->work_buff->offset;
 	vsp->par.dl_par.virt_addr = (void *)tmp_addr;
-	vsp->par.dl_par.tbl_num = (VSPM_IF_MEM_SIZE - vsp->mem.offset) >> 3;
+	vsp->par.dl_par.tbl_num =
+		(VSPM_IF_MEM_SIZE - vsp->work_buff->offset) >> 3;
 
 	return 0;
 

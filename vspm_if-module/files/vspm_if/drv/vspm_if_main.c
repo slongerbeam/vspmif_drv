@@ -89,6 +89,7 @@ static int open(struct inode *inode, struct file *file)
 	init_completion(&priv->wait_interrupt);
 	init_completion(&priv->wait_thread);
 	INIT_LIST_HEAD(&priv->cb_data.list);
+	sema_init(&priv->sem, 1);
 
 	file->private_data = priv;
 	return 0;
@@ -113,6 +114,9 @@ static int close(struct inode *inode, struct file *file)
 			}
 			priv->handle = 0;
 		}
+
+		/* release work buffer */
+		release_work_buffers(priv);
 
 		/* release memory */
 		kfree(priv);

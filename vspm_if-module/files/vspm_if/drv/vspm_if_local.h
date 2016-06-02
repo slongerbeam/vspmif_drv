@@ -89,6 +89,15 @@ extern struct platform_device *g_pdev;
 #define VSPM_IF_CP_TO_INT(addr) \
 	((unsigned int)((unsigned long)(addr)))
 
+/* work buffer structure */
+struct vspm_if_work_buff_t {
+	dma_addr_t hard_addr;
+	void *virt_addr;
+	unsigned int use_flag;
+	unsigned int offset;
+	void *next_buff;
+};
+
 /* entry data structure */
 struct vspm_if_entry_data_t {
 	struct vspm_if_private_t *priv;
@@ -142,11 +151,7 @@ struct vspm_if_entry_data_t {
 				struct vsp_drc_t drc;
 			} ctrl;
 			/* memory settings */
-			struct vspm_entry_vsp_mem {
-				dma_addr_t hard_addr;
-				void *virt_addr;
-				unsigned long offset;
-			} mem;
+			struct vspm_if_work_buff_t *work_buff;
 		} vsp;
 		struct vspm_entry_fdp {
 			/* parameter to FDP processing */
@@ -178,10 +183,7 @@ struct vspm_if_cb_data_t {
 		void *virt_addr;
 		void *user_addr;
 	} vsp_hgt;
-	struct vsp_cb_vsp_mem {
-		dma_addr_t hard_addr;
-		void *virt_addr;
-	} vsp_mem;
+	struct vspm_if_work_buff_t *vsp_work_buff;
 };
 
 /* private data structure */
@@ -191,10 +193,15 @@ struct vspm_if_private_t {
 	struct vspm_if_cb_data_t cb_data;
 	struct completion wait_interrupt;
 	struct completion wait_thread;
+	struct semaphore sem;
+	struct vspm_if_work_buff_t *work_buff;
 	unsigned long handle;
 };
 
 /* sub function */
+struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv);
+void release_work_buffers(struct vspm_if_private_t *priv);
+
 int free_vsp_par(struct vspm_entry_vsp *vsp);
 int set_vsp_par(
 	struct vspm_if_entry_data_t *entry,
