@@ -195,7 +195,7 @@ struct vspm_if_private_t {
 	struct completion wait_thread;
 	struct semaphore sem;
 	struct vspm_if_work_buff_t *work_buff;
-	unsigned long handle;
+	void *handle;
 };
 
 /* sub function */

@@ -103,7 +103,7 @@ static int close(struct inode *inode, struct file *file)
 	long ercd;
 
 	if (priv != NULL) {
-		if (priv->handle != 0) {
+		if (priv->handle != NULL) {
 			ercd = vspm_quit_driver(priv->handle);
 			if (ercd != R_VSPM_OK) {
 				EPRINT("failed to vspm_quit_driver %d\n",
@@ -112,7 +112,7 @@ static int close(struct inode *inode, struct file *file)
 				kfree(priv);
 				return -EFAULT;
 			}
-			priv->handle = 0;
+			priv->handle = NULL;
 		}
 
 		/* release work buffer */
@@ -132,7 +132,7 @@ static long vspm_ioctl_init(
 	struct vspm_init_t init_par;
 	struct vspm_init_fdp_t init_fdp_par;
 
-	unsigned long handle;
+	void *handle;
 	long ercd;
 
 	/* copy initialize parameter */
@@ -193,12 +193,12 @@ static long vspm_ioctl_quit(struct vspm_if_private_t *priv)
 	if (ercd != R_VSPM_OK)
 		return -EFAULT;
 
-	priv->handle = 0;
+	priv->handle = NULL;
 	return 0;
 }
 
 static void vspm_cb_func(
-	unsigned long job_id, long result, unsigned long user_data)
+	unsigned long job_id, long result, void *user_data)
 {
 	struct vspm_if_entry_data_t *entry_data =
 		(struct vspm_if_entry_data_t *)user_data;
@@ -322,7 +322,7 @@ static long vspm_ioctl_entry(
 		&entry_rsp->job_id,
 		entry_req->priority,
 		entry_req->job_param,
-		(unsigned long)entry_data,
+		(void *)entry_data,
 		vspm_cb_func);
 
 	/* copy result to user */
@@ -584,12 +584,11 @@ static long vspm_ioctl_init32(
 	struct vspm_init_t init_par;
 	struct vspm_init_fdp_t init_fdp_par;
 
-	unsigned long handle;
+	void *handle;
 	long ercd;
 
 	/* for 32bit */
 	struct vspm_compat_init_t compat_init_par;
-	struct vspm_compat_init_fdp_t compat_init_fdp_par;
 
 	/* copy initialize parameter */
 	if (copy_from_user(
@@ -610,16 +609,12 @@ static long vspm_ioctl_init32(
 		/* copy initialize parameter of FDP */
 		if (compat_init_par.par.fdp != 0) {
 			if (copy_from_user(
-					&compat_init_fdp_par,
+					&init_fdp_par,
 				    VSPM_IF_INT_TO_UP(compat_init_par.par.fdp),
-				    sizeof(struct vspm_compat_init_fdp_t))) {
+				    sizeof(struct vspm_init_fdp_t))) {
 				EPRINT("INIT32: failed to copy FDP param\n");
 				return -EFAULT;
 			}
-			init_fdp_par.hard_addr[0] =
-			    VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[0]);
-			init_fdp_par.hard_addr[1] =
-			    VSPM_IF_INT_TO_VP(compat_init_fdp_par.hard_addr[1]);
 			init_par.par.fdp = &init_fdp_par;
 		} else {
 			init_par.par.fdp = NULL;
@@ -683,7 +678,7 @@ static long vspm_ioctl_entry32(
 	}
 
 	entry_req->priority = compat_req->priority;
-	entry_req->user_data = (unsigned long)compat_req->user_data;
+	entry_req->user_data = VSPM_IF_INT_TO_VP(compat_req->user_data);
 	entry_req->cb_func = VSPM_IF_INT_TO_CP(compat_req->cb_func);
 
 	if (compat_req->job_param != 0) {
@@ -738,7 +733,7 @@ static long vspm_ioctl_entry32(
 		&entry_rsp->job_id,
 		entry_req->priority,
 		entry_req->job_param,
-		(unsigned long)entry_data,
+		(void *)entry_data,
 		vspm_cb_func);
 
 	/* copy result to user */
@@ -890,7 +885,8 @@ static long vspm_ioctl_wait_interrupt32(
 		compat_rsp.cb_func = VSPM_IF_CP_TO_INT(cb_data->rsp.cb_func);
 		compat_rsp.job_id = (unsigned int)cb_data->rsp.job_id;
 		compat_rsp.result = (int)cb_data->rsp.result;
-		compat_rsp.user_data = (unsigned int)cb_data->rsp.user_data;
+		compat_rsp.user_data =
+			(unsigned int)(unsigned long)cb_data->rsp.user_data;
 
 		/* copy response data to user */
 		if (copy_to_user(

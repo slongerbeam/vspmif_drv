@@ -189,7 +189,7 @@ static int set_vsp_src_clut_par(
 		tmp_addr =
 			(unsigned long)work_buff->hard_addr +
 			(unsigned long)work_buff->offset;
-		clut->hard_addr = (void *)tmp_addr;
+		clut->hard_addr = (unsigned int)tmp_addr;
 
 		/* increment memory offset */
 		work_buff->offset += VSPM_IF_RPF_CLUT_SIZE;
@@ -412,7 +412,7 @@ static int set_vsp_hgo_par(
 	tmp_addr =
 		(unsigned long)work_buff->hard_addr +
 		(unsigned long)work_buff->offset;
-	hgo->hgo.hard_addr = (void *)tmp_addr;
+	hgo->hgo.hard_addr = (unsigned int)tmp_addr;
 	tmp_addr =
 		(unsigned long)work_buff->virt_addr +
 		(unsigned long)work_buff->offset;
@@ -445,7 +445,7 @@ static int set_vsp_hgt_par(
 	tmp_addr =
 		(unsigned long)work_buff->hard_addr +
 		(unsigned long)work_buff->offset;
-	hgt->hgt.hard_addr = (void *)tmp_addr;
+	hgt->hgt.hard_addr = (unsigned int)tmp_addr;
 	tmp_addr =
 		(unsigned long)work_buff->virt_addr +
 		(unsigned long)work_buff->offset;
@@ -666,7 +666,7 @@ int set_vsp_par(
 	tmp_addr =
 		(unsigned long)vsp->work_buff->hard_addr +
 		(unsigned long)vsp->work_buff->offset;
-	dl_par->hard_addr = (void *)tmp_addr;
+	dl_par->hard_addr = (unsigned int)tmp_addr;
 	tmp_addr =
 		(unsigned long)vsp->work_buff->virt_addr +
 		(unsigned long)vsp->work_buff->offset;
@@ -884,7 +884,7 @@ static int set_compat_vsp_src_clut_par(
 		tmp_addr =
 			(unsigned long)work_buff->hard_addr +
 			(unsigned long)work_buff->offset;
-		clut->hard_addr = (void *)tmp_addr;
+		clut->hard_addr = (unsigned int)tmp_addr;
 		clut->tbl_num = compat_dl_par.tbl_num;
 
 		/* increment memory offset */
@@ -956,7 +956,7 @@ static int set_compat_vsp_src_alpha_par(
 		return -EFAULT;
 	}
 
-	alpha->alpha.addr_a = VSPM_IF_INT_TO_VP(compat_alpha.addr_a);
+	alpha->alpha.addr_a = compat_alpha.addr_a;
 	alpha->alpha.stride_a = compat_alpha.stride_a;
 	alpha->alpha.swap = compat_alpha.swap;
 	alpha->alpha.asel = compat_alpha.asel;
@@ -1013,9 +1013,9 @@ static int set_compat_vsp_src_par(
 		return -EFAULT;
 	}
 
-	in->in.addr = VSPM_IF_INT_TO_VP(compat_vsp_src.addr);
-	in->in.addr_c0 = VSPM_IF_INT_TO_VP(compat_vsp_src.addr_c0);
-	in->in.addr_c1 = VSPM_IF_INT_TO_VP(compat_vsp_src.addr_c1);
+	in->in.addr = compat_vsp_src.addr;
+	in->in.addr_c0 = compat_vsp_src.addr_c0;
+	in->in.addr_c1 = compat_vsp_src.addr_c1;
 	in->in.stride = compat_vsp_src.stride;
 	in->in.stride_c = compat_vsp_src.stride_c;
 	in->in.width = compat_vsp_src.width;
@@ -1059,50 +1059,10 @@ static int set_compat_vsp_src_par(
 	return 0;
 }
 
-static int set_compat_fcp_par(struct fcp_info_t *fcp_info, unsigned int src)
-{
-	struct compat_fcp_info_t compat_fcp_info;
-
-	/* copy */
-	if (copy_from_user(
-			&compat_fcp_info,
-			VSPM_IF_INT_TO_UP(src),
-			sizeof(struct compat_fcp_info_t))) {
-		EPRINT("failed to copy of fcp_info_t\n");
-		return -EFAULT;
-	}
-
-	/* set */
-	fcp_info->fcnl = compat_fcp_info.fcnl;
-	fcp_info->tlen = compat_fcp_info.tlen;
-	fcp_info->pos_y = compat_fcp_info.pos_y;
-	fcp_info->pos_c = compat_fcp_info.pos_c;
-	fcp_info->stride_div16 = compat_fcp_info.stride_div16;
-	fcp_info->ba_anc_prev_y =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_prev_y);
-	fcp_info->ba_anc_cur_y =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_y);
-	fcp_info->ba_anc_next_y =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_next_y);
-	fcp_info->ba_anc_cur_c =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_anc_cur_c);
-	fcp_info->ba_ref_prev_y =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_prev_y);
-	fcp_info->ba_ref_cur_y =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_y);
-	fcp_info->ba_ref_next_y =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_next_y);
-	fcp_info->ba_ref_cur_c =
-		VSPM_IF_INT_TO_VP(compat_fcp_info.ba_ref_cur_c);
-
-	return 0;
-}
-
 static int set_compat_vsp_dst_par(
 	struct vspm_entry_vsp_out *out, unsigned int src)
 {
 	struct compat_vsp_dst_t compat_vsp_dst;
-	int ercd;
 
 	/* copy vsp_dst_t parameter */
 	if (copy_from_user(
@@ -1113,9 +1073,9 @@ static int set_compat_vsp_dst_par(
 		return -EFAULT;
 	}
 
-	out->out.addr = VSPM_IF_INT_TO_VP(compat_vsp_dst.addr);
-	out->out.addr_c0 = VSPM_IF_INT_TO_VP(compat_vsp_dst.addr_c0);
-	out->out.addr_c1 = VSPM_IF_INT_TO_VP(compat_vsp_dst.addr_c1);
+	out->out.addr = compat_vsp_dst.addr;
+	out->out.addr_c0 = compat_vsp_dst.addr_c0;
+	out->out.addr_c1 = compat_vsp_dst.addr_c1;
 	out->out.stride = compat_vsp_dst.stride;
 	out->out.stride_c = compat_vsp_dst.stride_c;
 	out->out.width = compat_vsp_dst.width;
@@ -1140,9 +1100,13 @@ static int set_compat_vsp_dst_par(
 
 	/* copy fcp_info_t parameter */
 	if (compat_vsp_dst.fcp) {
-		ercd = set_compat_fcp_par(&out->fcp, compat_vsp_dst.fcp);
-		if (ercd)
-			return ercd;
+		if (copy_from_user(
+				&out->fcp,
+				VSPM_IF_INT_TO_UP(compat_vsp_dst.fcp),
+				sizeof(struct fcp_info_t))) {
+			EPRINT("failed to copy to fcp_info_t\n");
+			return -EFAULT;
+		}
 		out->out.fcp = &out->fcp;
 	}
 
@@ -1217,7 +1181,7 @@ static int set_compat_vsp_lut_par(struct vsp_lut_t *lut, unsigned int src)
 	}
 
 	/* set */
-	lut->lut.hard_addr = VSPM_IF_INT_TO_VP(compat_lut.lut.hard_addr);
+	lut->lut.hard_addr = compat_lut.lut.hard_addr;
 	lut->lut.virt_addr = VSPM_IF_INT_TO_VP(compat_lut.lut.virt_addr);
 	lut->lut.tbl_num = compat_lut.lut.tbl_num;
 	lut->fxa = compat_lut.fxa;
@@ -1241,7 +1205,7 @@ static int set_compat_vsp_clu_par(struct vsp_clu_t *clu, unsigned int src)
 
 	/* set */
 	clu->mode = compat_clu.mode;
-	clu->clu.hard_addr = VSPM_IF_INT_TO_VP(compat_clu.clu.hard_addr);
+	clu->clu.hard_addr = compat_clu.clu.hard_addr;
 	clu->clu.virt_addr = VSPM_IF_INT_TO_VP(compat_clu.clu.virt_addr);
 	clu->clu.tbl_num = compat_clu.clu.tbl_num;
 	clu->fxa = compat_clu.fxa;
@@ -1417,7 +1381,7 @@ static int set_compat_vsp_hgo_par(
 	tmp_addr =
 		(unsigned long)work_buff->hard_addr +
 		(unsigned long)work_buff->offset;
-	hgo->hgo.hard_addr = (void *)tmp_addr;
+	hgo->hgo.hard_addr = (unsigned int)tmp_addr;
 	tmp_addr =
 		(unsigned long)work_buff->virt_addr +
 		(unsigned long)work_buff->offset;
@@ -1465,7 +1429,7 @@ static int set_compat_vsp_hgt_par(
 	tmp_addr =
 		(unsigned long)work_buff->hard_addr +
 		(unsigned long)work_buff->offset;
-	hgt->hgt.hard_addr = (void *)tmp_addr;
+	hgt->hgt.hard_addr = (unsigned int)tmp_addr;
 	tmp_addr =
 		(unsigned long)work_buff->virt_addr +
 		(unsigned long)work_buff->offset;
@@ -1536,7 +1500,7 @@ static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int src)
 	}
 
 	/* set */
-	drc->drc.hard_addr = VSPM_IF_INT_TO_VP(compat_drc.drc.hard_addr);
+	drc->drc.hard_addr = compat_drc.drc.hard_addr;
 	drc->drc.virt_addr = VSPM_IF_INT_TO_VP(compat_drc.drc.virt_addr);
 	drc->drc.tbl_num = compat_drc.drc.tbl_num;
 	drc->fxa = compat_drc.fxa;
@@ -1721,7 +1685,7 @@ int set_compat_vsp_par(
 	tmp_addr =
 		(unsigned long)vsp->work_buff->hard_addr +
 		(unsigned long)vsp->work_buff->offset;
-	vsp->par.dl_par.hard_addr = (void *)tmp_addr;
+	vsp->par.dl_par.hard_addr = (unsigned int)tmp_addr;
 	tmp_addr =
 		(unsigned long)vsp->work_buff->virt_addr +
 		(unsigned long)vsp->work_buff->offset;
@@ -1763,35 +1727,10 @@ static int set_compat_fdp_pic_par(struct fdp_pic_t *in_pic, unsigned int src)
 	return 0;
 }
 
-static int set_compat_fdp_img_par(
-	struct fdp_imgbuf_t *imgbuf, unsigned int src)
-{
-	struct compat_fdp_imgbuf_t compat_fdp_imgbuf;
-
-	/* copy */
-	if (copy_from_user(
-			&compat_fdp_imgbuf,
-			VSPM_IF_INT_TO_UP(src),
-			sizeof(struct compat_fdp_imgbuf_t))) {
-		EPRINT("failed to copy of fdp_imgbuf_t\n");
-		return -EFAULT;
-	}
-
-	/* set */
-	imgbuf->addr = VSPM_IF_INT_TO_VP(compat_fdp_imgbuf.addr);
-	imgbuf->addr_c0 = VSPM_IF_INT_TO_VP(compat_fdp_imgbuf.addr_c0);
-	imgbuf->addr_c1 = VSPM_IF_INT_TO_VP(compat_fdp_imgbuf.addr_c1);
-	imgbuf->stride = compat_fdp_imgbuf.stride;
-	imgbuf->stride_c = compat_fdp_imgbuf.stride_c;
-
-	return 0;
-}
-
 static int set_compat_fdp_ref_par(
 	struct vspm_entry_fdp_ref *ref, unsigned int src)
 {
 	struct compat_fdp_refbuf_t compat_fdp_refbuf;
-	int ercd;
 
 	/* copy fdp_refbuf_t parameter */
 	if (copy_from_user(
@@ -1803,26 +1742,35 @@ static int set_compat_fdp_ref_par(
 	}
 
 	if (compat_fdp_refbuf.next_buf) {
-		ercd = set_compat_fdp_img_par(
-			&ref->ref[0], compat_fdp_refbuf.next_buf);
-		if (ercd)
-			return ercd;
+		if (copy_from_user(
+				&ref->ref[0],
+				VSPM_IF_INT_TO_UP(compat_fdp_refbuf.next_buf),
+				sizeof(struct fdp_imgbuf_t))) {
+			EPRINT("failed to copy to fdp_imgbuf_t\n");
+			return -EFAULT;
+		}
 		ref->ref_buf.next_buf = &ref->ref[0];
 	}
 
 	if (compat_fdp_refbuf.cur_buf) {
-		ercd = set_compat_fdp_img_par(
-			&ref->ref[1], compat_fdp_refbuf.cur_buf);
-		if (ercd)
-			return ercd;
+		if (copy_from_user(
+				&ref->ref[1],
+				VSPM_IF_INT_TO_UP(compat_fdp_refbuf.cur_buf),
+				sizeof(struct fdp_imgbuf_t))) {
+			EPRINT("failed to copy to fdp_imgbuf_t\n");
+			return -EFAULT;
+		}
 		ref->ref_buf.cur_buf = &ref->ref[1];
 	}
 
 	if (compat_fdp_refbuf.prev_buf) {
-		ercd = set_compat_fdp_img_par(
-			&ref->ref[2], compat_fdp_refbuf.prev_buf);
-		if (ercd)
-			return ercd;
+		if (copy_from_user(
+				&ref->ref[2],
+				VSPM_IF_INT_TO_UP(compat_fdp_refbuf.prev_buf),
+				sizeof(struct fdp_imgbuf_t))) {
+			EPRINT("failed to copy to fdp_imgbuf_t\n");
+			return -EFAULT;
+		}
 		ref->ref_buf.prev_buf = &ref->ref[2];
 	}
 
@@ -1872,10 +1820,13 @@ static int set_compat_fdp_fproc_par(
 
 	/* copy fdp_imgbuf_t parameter */
 	if (compat_fdp_fproc.out_buf) {
-		ercd = set_compat_fdp_img_par(
-			&fproc->out_buf, compat_fdp_fproc.out_buf);
-		if (ercd)
-			return ercd;
+		if (copy_from_user(
+				&fproc->out_buf,
+				VSPM_IF_INT_TO_UP(compat_fdp_fproc.out_buf),
+				sizeof(struct fdp_imgbuf_t))) {
+			EPRINT("failed to copy to fdp_imgbuf_t\n");
+			return -EFAULT;
+		}
 		fproc->fproc.out_buf = &fproc->out_buf;
 	}
 
@@ -1890,10 +1841,13 @@ static int set_compat_fdp_fproc_par(
 
 	/* copy fcp_info_t parameter */
 	if (compat_fdp_fproc.fcp_par) {
-		ercd = set_compat_fcp_par(
-			&fproc->fcp, compat_fdp_fproc.fcp_par);
-		if (ercd)
-			return ercd;
+		if (copy_from_user(
+				&fproc->fcp,
+				VSPM_IF_INT_TO_UP(compat_fdp_fproc.fcp_par),
+				sizeof(struct fcp_info_t))) {
+			EPRINT("failed to copy to fcp_info_t\n");
+			return -EFAULT;
+		}
 		fproc->fproc.fcp_par = &fproc->fcp;
 	}
 

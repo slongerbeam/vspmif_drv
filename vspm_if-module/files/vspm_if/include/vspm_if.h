@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  VSPM
 
- Copyright (C) 2015 Renesas Electronics Corporation
+ Copyright (C) 2015-2016 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -82,7 +82,7 @@ struct vspm_if_entry_t {
 	struct vspm_if_entry_req_t {
 		char priority;
 		struct vspm_job_t *job_param;
-		unsigned long user_data;
+		void *user_data;
 		PFN_VSPM_COMPLETE_CALLBACK cb_func;
 	} req;
 	struct vspm_if_entry_rsp_t {
@@ -96,7 +96,7 @@ struct vspm_if_cb_rsp_t {
 	PFN_VSPM_COMPLETE_CALLBACK cb_func;
 	unsigned long job_id;
 	long result;
-	unsigned long user_data;
+	void *user_data;
 };
 
 #define VSPM_IOC_CMD_INIT \
@@ -125,10 +125,6 @@ struct vspm_compat_init_t {
 		unsigned int vsp;
 		unsigned int fdp;
 	} par;
-};
-
-struct vspm_compat_init_fdp_t {
-	unsigned int hard_addr[2];
 };
 
 struct vspm_compat_entry_t {
@@ -398,14 +394,6 @@ struct compat_fdp_pic_t {
 	unsigned char top_field_first;
 };
 
-struct compat_fdp_imgbuf_t {
-	unsigned int addr;
-	unsigned int addr_c0;
-	unsigned int addr_c1;
-	unsigned short stride;
-	unsigned short stride_c;
-};
-
 struct compat_fdp_refbuf_t {
 	unsigned int next_buf;
 	unsigned int cur_buf;
@@ -445,22 +433,6 @@ struct vspm_compat_cb_rsp_t {
 	unsigned int job_id;
 	int result;
 	unsigned int user_data;
-};
-
-struct compat_fcp_info_t {
-	unsigned char fcnl;
-	unsigned char tlen;
-	unsigned short pos_y;
-	unsigned short pos_c;
-	unsigned short stride_div16;
-	unsigned int ba_anc_prev_y;
-	unsigned int ba_anc_cur_y;
-	unsigned int ba_anc_next_y;
-	unsigned int ba_anc_cur_c;
-	unsigned int ba_ref_prev_y;
-	unsigned int ba_ref_cur_y;
-	unsigned int ba_ref_next_y;
-	unsigned int ba_ref_cur_c;
 };
 
 #define VSPM_IOC_CMD_INIT32 \
