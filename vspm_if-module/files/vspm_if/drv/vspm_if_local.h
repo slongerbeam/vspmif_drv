@@ -166,6 +166,7 @@ struct vspm_if_entry_data_t {
 					struct fdp_imgbuf_t ref[3];
 				} ref;
 				struct fcp_info_t fcp;
+				struct fdp_ipc_t ipc;
 			} fproc;
 		} fdp;
 	} ip_par;

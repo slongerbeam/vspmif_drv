@@ -1851,6 +1851,18 @@ static int set_compat_fdp_fproc_par(
 		fproc->fproc.fcp_par = &fproc->fcp;
 	}
 
+	/* copy fdp_ipc_t parameter */
+	if (compat_fdp_fproc.ipc_par) {
+		if (copy_from_user(
+				&fproc->ipc,
+				VSPM_IF_INT_TO_UP(compat_fdp_fproc.ipc_par),
+				sizeof(struct fdp_ipc_t))) {
+			EPRINT("failed to copy to fdp_ipc_t\n");
+			return -EFAULT;
+		}
+		fproc->fproc.ipc_par = &fproc->ipc;
+	}
+
 	return 0;
 }
 
