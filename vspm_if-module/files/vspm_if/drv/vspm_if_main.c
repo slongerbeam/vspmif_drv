@@ -73,7 +73,7 @@
 #include "vspm_if.h"
 #include "vspm_if_local.h"
 
-struct platform_device *g_pdev;
+struct platform_device *g_vspmif_pdev;
 
 static int open(struct inode *inode, struct file *file)
 {
@@ -967,16 +967,16 @@ static struct miscdevice misc = {
 
 static int vspm_if_probe(struct platform_device *pdev)
 {
-	if (g_pdev != NULL)
+	if (g_vspmif_pdev != NULL)
 		return -1;
 
-	g_pdev = pdev;
+	g_vspmif_pdev = pdev;
 	return 0;
 }
 
 static int vspm_if_remove(struct platform_device *pdev)
 {
-	g_pdev = NULL;
+	g_vspmif_pdev = NULL;
 	return 0;
 }
 
@@ -997,10 +997,10 @@ static struct platform_driver vspm_if_driver = {
 
 static int vspm_if_init(void)
 {
-	g_pdev = NULL;
+	g_vspmif_pdev = NULL;
 
 	platform_driver_register(&vspm_if_driver);
-	if (g_pdev == NULL) {
+	if (g_vspmif_pdev == NULL) {
 		platform_driver_unregister(&vspm_if_driver);
 		return -ENOSYS;
 	}

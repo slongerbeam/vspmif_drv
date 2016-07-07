@@ -64,7 +64,7 @@
 
 #include <linux/sched.h>
 
-extern struct platform_device *g_pdev;
+extern struct platform_device *g_vspmif_pdev;
 
 /* define assigned memory size */
 #define VSPM_IF_MEM_SIZE			(24576)

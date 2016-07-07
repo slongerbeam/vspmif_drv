@@ -101,7 +101,7 @@ struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
 	}
 
 	cur_buff->virt_addr = dma_alloc_coherent(
-		&g_pdev->dev,
+		&g_vspmif_pdev->dev,
 		VSPM_IF_MEM_SIZE,
 		&cur_buff->hard_addr,
 		GFP_KERNEL);
@@ -139,7 +139,7 @@ void release_work_buffers(struct vspm_if_private_t *priv)
 
 		/* release work buffer */
 		dma_free_coherent(
-			&g_pdev->dev,
+			&g_vspmif_pdev->dev,
 			VSPM_IF_MEM_SIZE,
 			cur_buff->virt_addr,
 			cur_buff->hard_addr);
