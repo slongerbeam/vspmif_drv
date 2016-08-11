@@ -450,8 +450,9 @@ static long vspm_ioctl_wait_interrupt(
 
 		/* HGO result */
 		if (cb_data->vsp_hgo.virt_addr != NULL) {
-			unsigned long tmp_addr = (unsigned long)
-				(cb_data->vsp_hgo.virt_addr + 255) >> 8;
+			unsigned long tmp_addr =
+				(unsigned long)(cb_data->vsp_hgo.virt_addr);
+			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgo.user_addr != NULL) {
 				if (copy_to_user((void __user *)
@@ -465,8 +466,9 @@ static long vspm_ioctl_wait_interrupt(
 
 		/* HGT result */
 		if (cb_data->vsp_hgt.virt_addr != NULL) {
-			unsigned long tmp_addr = (unsigned long)
-				(cb_data->vsp_hgt.virt_addr + 255) >> 8;
+			unsigned long tmp_addr =
+				(unsigned long)(cb_data->vsp_hgt.virt_addr);
+			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgt.user_addr != NULL) {
 				if (copy_to_user((void __user *)
@@ -851,8 +853,9 @@ static long vspm_ioctl_wait_interrupt32(
 
 		/* HGO result */
 		if (cb_data->vsp_hgo.virt_addr != NULL) {
-			unsigned long tmp_addr = (unsigned long)
-				(cb_data->vsp_hgo.virt_addr + 255) >> 8;
+			unsigned long tmp_addr =
+				(unsigned long)(cb_data->vsp_hgo.virt_addr);
+			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgo.user_addr != NULL) {
 				if (copy_to_user((void __user *)
@@ -867,8 +870,9 @@ static long vspm_ioctl_wait_interrupt32(
 
 		/* HGT result */
 		if (cb_data->vsp_hgt.virt_addr != NULL) {
-			unsigned long tmp_addr = (unsigned long)
-				(cb_data->vsp_hgt.virt_addr + 255) >> 8;
+			unsigned long tmp_addr =
+				(unsigned long)(cb_data->vsp_hgt.virt_addr);
+			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
 			if (cb_data->vsp_hgt.user_addr != NULL) {
 				if (copy_to_user((void __user *)
