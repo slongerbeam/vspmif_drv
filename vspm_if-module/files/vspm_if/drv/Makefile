@@ -14,4 +14,5 @@ clean:
 	make -C $(KERNELSRC) M=$(PWD) clean
 install:
 	$(CP) ../include/vspm_if.h $(KERNELSRC)/include
+	$(CP) ../include/vspm_if.h $(INCSHARED)
 
