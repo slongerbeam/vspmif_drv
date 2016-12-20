@@ -352,12 +352,6 @@ struct compat_vsp_shp_t {
 	unsigned int connect;
 };
 
-struct compat_vsp_drc_t {
-	struct compat_vsp_dl_t drc;
-	unsigned char fxa;
-	unsigned int connect;
-};
-
 struct compat_vsp_ctrl_t {
 	unsigned int sru;
 	unsigned int uds;
@@ -369,7 +363,6 @@ struct compat_vsp_ctrl_t {
 	unsigned int hgo;
 	unsigned int hgt;
 	unsigned int shp;
-	unsigned int drc;
 };
 
 struct compat_vsp_start_t {

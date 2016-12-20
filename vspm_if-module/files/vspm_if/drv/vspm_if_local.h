@@ -149,7 +149,6 @@ struct vspm_if_entry_data_t {
 					void *user_addr;
 				} hgt;
 				struct vsp_shp_t shp;
-				struct vsp_drc_t drc;
 			} ctrl;
 			/* memory settings */
 			struct vspm_if_work_buff_t *work_buff;

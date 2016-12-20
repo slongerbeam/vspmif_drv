@@ -615,18 +615,6 @@ static int set_vsp_ctrl_par(
 		ctrl->ctrl.shp = &ctrl->shp;
 	}
 
-	/* copy vsp_drc_t parameter */
-	if (ctrl->ctrl.drc) {
-		if (copy_from_user(
-				&ctrl->drc,
-				(void __user *)ctrl->ctrl.drc,
-				sizeof(struct vsp_drc_t))) {
-			EPRINT("failed to copy of vsp_drc_t\n");
-			return -EFAULT;
-		}
-		ctrl->ctrl.drc = &ctrl->drc;
-	}
-
 	return 0;
 }
 
@@ -1520,29 +1508,6 @@ static int set_compat_vsp_shp_par(struct vsp_shp_t *shp, unsigned int src)
 	return 0;
 }
 
-static int set_compat_vsp_drc_par(struct vsp_drc_t *drc, unsigned int src)
-{
-	struct compat_vsp_drc_t compat_drc;
-
-	/* copy */
-	if (copy_from_user(
-			&compat_drc,
-			VSPM_IF_INT_TO_UP(src),
-			sizeof(struct compat_vsp_drc_t))) {
-		EPRINT("failed to copy of vsp_drc_t\n");
-		return -EFAULT;
-	}
-
-	/* set */
-	drc->drc.hard_addr = compat_drc.drc.hard_addr;
-	drc->drc.virt_addr = VSPM_IF_INT_TO_VP(compat_drc.drc.virt_addr);
-	drc->drc.tbl_num = compat_drc.drc.tbl_num;
-	drc->fxa = compat_drc.fxa;
-	drc->connect = (unsigned long)compat_drc.connect;
-
-	return 0;
-}
-
 
 static int set_compat_vsp_ctrl_par(
 	struct vspm_entry_vsp_ctrl *ctrl,
@@ -1641,14 +1606,6 @@ static int set_compat_vsp_ctrl_par(
 		if (ercd)
 			return ercd;
 		ctrl->ctrl.shp = &ctrl->shp;
-	}
-
-	/* copy vsp_drc_t parameter */
-	if (compat_vsp_ctrl.drc) {
-		ercd = set_compat_vsp_drc_par(&ctrl->drc, compat_vsp_ctrl.drc);
-		if (ercd)
-			return ercd;
-		ctrl->ctrl.drc = &ctrl->drc;
 	}
 
 	return 0;
