@@ -100,6 +100,7 @@ struct vspm_if_work_buff_t {
 
 /* entry data structure */
 struct vspm_if_entry_data_t {
+	struct list_head list;
 	struct vspm_if_private_t *priv;
 	struct vspm_if_entry_t entry;
 	struct vspm_job_t job;
@@ -191,6 +192,7 @@ struct vspm_if_cb_data_t {
 struct vspm_if_private_t {
 	spinlock_t lock;
 	struct task_struct *thread;
+	struct vspm_if_entry_data_t entry_data;
 	struct vspm_if_cb_data_t cb_data;
 	struct completion wait_interrupt;
 	struct completion wait_thread;
@@ -200,6 +202,9 @@ struct vspm_if_private_t {
 };
 
 /* sub function */
+void release_all_entry_data(struct vspm_if_private_t *priv);
+void release_all_cb_data(struct vspm_if_private_t *priv);
+
 struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv);
 void release_work_buffers(struct vspm_if_private_t *priv);
 

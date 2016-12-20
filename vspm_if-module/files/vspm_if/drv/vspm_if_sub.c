@@ -70,6 +70,40 @@
 #include "vspm_if.h"
 #include "vspm_if_local.h"
 
+void release_all_entry_data(struct vspm_if_private_t *priv)
+{
+	struct vspm_if_entry_data_t *entry_data;
+	struct vspm_if_entry_data_t *next;
+
+	unsigned long lock_flag;
+
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_for_each_entry_safe(
+		entry_data, next, &priv->entry_data.list, list) {
+		list_del(&entry_data->list);
+		if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
+			free_vsp_par(&entry_data->ip_par.vsp);
+		kfree(entry_data);
+	}
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
+}
+
+void release_all_cb_data(struct vspm_if_private_t *priv)
+{
+	struct vspm_if_cb_data_t *cb_data;
+	struct vspm_if_cb_data_t *next;
+
+	unsigned long lock_flag;
+
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_for_each_entry_safe(cb_data, next, &priv->cb_data.list, list) {
+		list_del(&cb_data->list);
+		free_cb_vsp_par(cb_data);
+		kfree(cb_data);
+	}
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
+}
+
 struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
 {
 	struct vspm_if_work_buff_t *cur_buff = NULL;

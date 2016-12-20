@@ -88,6 +88,7 @@ static int open(struct inode *inode, struct file *file)
 	spin_lock_init(&priv->lock);
 	init_completion(&priv->wait_interrupt);
 	init_completion(&priv->wait_thread);
+	INIT_LIST_HEAD(&priv->entry_data.list);
 	INIT_LIST_HEAD(&priv->cb_data.list);
 	sema_init(&priv->sem, 1);
 
@@ -100,20 +101,17 @@ static int close(struct inode *inode, struct file *file)
 	struct vspm_if_private_t *priv =
 		(struct vspm_if_private_t *)file->private_data;
 
-	long ercd;
-
 	if (priv != NULL) {
 		if (priv->handle != NULL) {
-			ercd = vspm_quit_driver(priv->handle);
-			if (ercd != R_VSPM_OK) {
-				EPRINT("failed to vspm_quit_driver %d\n",
-					(int)ercd);
-				/* forced release memory */
-				kfree(priv);
-				return -EFAULT;
-			}
+			(void)vspm_quit_driver(priv->handle);
 			priv->handle = NULL;
 		}
+
+		/* release entry data */
+		release_all_entry_data(priv);
+
+		/* release callback data */
+		release_all_cb_data(priv);
 
 		/* release work buffer */
 		release_work_buffers(priv);
@@ -194,6 +192,10 @@ static long vspm_ioctl_quit(struct vspm_if_private_t *priv)
 		return -EFAULT;
 
 	priv->handle = NULL;
+
+	/* release entry data */
+	release_all_entry_data(priv);
+
 	return 0;
 }
 
@@ -211,6 +213,11 @@ static void vspm_cb_func(
 		return;
 
 	priv = entry_data->priv;
+
+	/* del list */
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_del(&entry_data->list);
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 	/* allocate callback data */
 	cb_data = kzalloc(sizeof(struct vspm_if_cb_data_t), GFP_ATOMIC);
@@ -251,6 +258,7 @@ static long vspm_ioctl_entry(
 	struct vspm_if_entry_req_t *entry_req;
 	struct vspm_if_entry_rsp_t *entry_rsp;
 
+	unsigned long lock_flag;
 	int ercd = 0;
 
 	/* allocate entry data */
@@ -259,14 +267,19 @@ static long vspm_ioctl_entry(
 		return -ENOMEM;
 	entry_data->priv = priv;
 
+	/* add list */
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_add_tail(&entry_data->list, &priv->entry_data.list);
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
+
 	/* copy entry parameter */
 	if (copy_from_user(
 			&entry_data->entry,
 			(void __user *)arg,
 			_IOC_SIZE(cmd))) {
 		EPRINT("ENTRY: failed to copy the entry parameter\n");
-		kfree(entry_data);
-		return -EFAULT;
+		ercd = -EFAULT;
+		goto err_exit;
 	}
 
 	entry_req = &entry_data->entry.req;
@@ -279,8 +292,8 @@ static long vspm_ioctl_entry(
 				(void __user *)entry_req->job_param,
 				sizeof(struct vspm_job_t))) {
 			EPRINT("ENTRY: failed to copy the job parameter\n");
-			kfree(entry_data);
-			return -EFAULT;
+			ercd = -EFAULT;
+			goto err_exit;
 		}
 		entry_req->job_param = &entry_data->job;
 
@@ -290,10 +303,9 @@ static long vspm_ioctl_entry(
 				/* copy start parameter of VSP */
 				ercd = set_vsp_par(
 					entry_data, entry_data->job.par.vsp);
-				if (ercd) {
-					kfree(entry_data);
-					return ercd;
-				}
+				if (ercd)
+					goto err_exit;
+
 				entry_req->job_param->par.vsp =
 					&entry_data->ip_par.vsp.par;
 			}
@@ -303,10 +315,9 @@ static long vspm_ioctl_entry(
 				/* copy start parameter of FDP */
 				ercd = set_fdp_par(
 					entry_data, entry_data->job.par.fdp);
-				if (ercd) {
-					kfree(entry_data);
-					return ercd;
-				}
+				if (ercd)
+					goto err_exit;
+
 				entry_req->job_param->par.fdp =
 					&entry_data->ip_par.fdp.par;
 			}
@@ -330,13 +341,21 @@ static long vspm_ioctl_entry(
 			(void __user *)arg, &entry_data->entry, _IOC_SIZE(cmd)))
 		APRINT("ENTRY: failed to copy the result\n");
 
-	if (entry_rsp->ercd != R_VSPM_OK) {
-		if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
-			free_vsp_par(&entry_data->ip_par.vsp);
-		kfree(entry_data);
-	}
+	if (entry_rsp->ercd != R_VSPM_OK)
+		goto err_exit;
 
 	return 0;
+
+err_exit:
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_del(&entry_data->list);
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
+
+	if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
+		free_vsp_par(&entry_data->ip_par.vsp);
+	kfree(entry_data);
+
+	return ercd;
 }
 
 static long vspm_ioctl_cancel(
@@ -514,18 +533,8 @@ static long vspm_ioctl_wait_thread(struct vspm_if_private_t *priv)
 
 static long vspm_ioctl_stop_thread(struct vspm_if_private_t *priv)
 {
-	struct vspm_if_cb_data_t *cb_data;
-	struct vspm_if_cb_data_t *next;
-
-	unsigned long lock_flag;
-
-	spin_lock_irqsave(&priv->lock, lock_flag);
-	list_for_each_entry_safe(cb_data, next, &priv->cb_data.list, list) {
-		list_del(&cb_data->list);
-		free_cb_vsp_par(cb_data);
-		kfree(cb_data);
-	}
-	spin_unlock_irqrestore(&priv->lock, lock_flag);
+	/* release callback data */
+	release_all_cb_data(priv);
 
 	complete(&priv->wait_interrupt);
 
@@ -660,6 +669,7 @@ static long vspm_ioctl_entry32(
 	struct vspm_compat_entry_req_t *compat_req = &compat_entry.req;
 	struct vspm_compat_entry_rsp_t *compat_rsp = &compat_entry.rsp;
 
+	unsigned long lock_flag;
 	int ercd = 0;
 
 	/* allocate entry data */
@@ -668,6 +678,11 @@ static long vspm_ioctl_entry32(
 		return -ENOMEM;
 	entry_data->priv = priv;
 
+	/* add list */
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_add_tail(&entry_data->list, &priv->entry_data.list);
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
+
 	entry_req = &entry_data->entry.req;
 	entry_rsp = &entry_data->entry.rsp;
 
@@ -675,8 +690,8 @@ static long vspm_ioctl_entry32(
 	if (copy_from_user(
 			&compat_entry, (void __user *)arg, _IOC_SIZE(cmd))) {
 		EPRINT("ENTRY32: failed to copy the entry parameter\n");
-		kfree(entry_data);
-		return -EFAULT;
+		ercd = -EFAULT;
+		goto err_exit;
 	}
 
 	entry_req->priority = compat_req->priority;
@@ -690,8 +705,8 @@ static long vspm_ioctl_entry32(
 				VSPM_IF_INT_TO_UP(compat_req->job_param),
 				sizeof(struct vspm_compat_job_t))) {
 			EPRINT("ENTRY32: failed to copy the job parameter\n");
-			kfree(entry_data);
-			return -EFAULT;
+			ercd = -EFAULT;
+			goto err_exit;
 		}
 		entry_data->job.type = compat_job.type;
 
@@ -701,10 +716,9 @@ static long vspm_ioctl_entry32(
 			if (compat_job.par.vsp) {
 				ercd = set_compat_vsp_par(
 					entry_data, compat_job.par.vsp);
-				if (ercd) {
-					kfree(entry_data);
-					return ercd;
-				}
+				if (ercd)
+					goto err_exit;
+
 				entry_data->job.par.vsp =
 					&entry_data->ip_par.vsp.par;
 			}
@@ -714,10 +728,9 @@ static long vspm_ioctl_entry32(
 			if (compat_job.par.fdp) {
 				ercd = set_compat_fdp_par(
 					entry_data, compat_job.par.fdp);
-				if (ercd) {
-					kfree(entry_data);
-					return ercd;
-				}
+				if (ercd)
+					goto err_exit;
+
 				entry_data->job.par.fdp =
 					&entry_data->ip_par.fdp.par;
 			}
@@ -746,13 +759,21 @@ static long vspm_ioctl_entry32(
 		APRINT("ENTRY32: failed to copy the result\n");
 	}
 
-	if (entry_rsp->ercd != R_VSPM_OK) {
-		if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
-			free_vsp_par(&entry_data->ip_par.vsp);
-		kfree(entry_data);
-	}
+	if (entry_rsp->ercd != R_VSPM_OK)
+		goto err_exit;
 
 	return 0;
+
+err_exit:
+	spin_lock_irqsave(&priv->lock, lock_flag);
+	list_del(&entry_data->list);
+	spin_unlock_irqrestore(&priv->lock, lock_flag);
+
+	if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
+		free_vsp_par(&entry_data->ip_par.vsp);
+	kfree(entry_data);
+
+	return ercd;
 }
 
 static long vspm_ioctl_get_status32(
