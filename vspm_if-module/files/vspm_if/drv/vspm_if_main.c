@@ -1,7 +1,7 @@
 /*************************************************************************/ /*
  VSPM
 
- Copyright (C) 2015-2016 Renesas Electronics Corporation
+ Copyright (C) 2015-2017 Renesas Electronics Corporation
 
  License        Dual MIT/GPLv2
 
@@ -256,7 +256,7 @@ static long vspm_ioctl_entry(
 {
 	struct vspm_if_entry_data_t *entry_data;
 	struct vspm_if_entry_req_t *entry_req;
-	struct vspm_if_entry_rsp_t *entry_rsp;
+	struct vspm_if_entry_t entry;
 
 	unsigned long lock_flag;
 	int ercd = 0;
@@ -283,7 +283,6 @@ static long vspm_ioctl_entry(
 	}
 
 	entry_req = &entry_data->entry.req;
-	entry_rsp = &entry_data->entry.rsp;
 
 	if (entry_req->job_param != NULL) {
 		/* copy job parameter */
@@ -328,9 +327,9 @@ static long vspm_ioctl_entry(
 	}
 
 	/* entry job */
-	entry_rsp->ercd = vspm_entry_job(
+	entry.rsp.ercd = vspm_entry_job(
 		priv->handle,
-		&entry_rsp->job_id,
+		&entry.rsp.job_id,
 		entry_req->priority,
 		entry_req->job_param,
 		(void *)entry_data,
@@ -338,10 +337,10 @@ static long vspm_ioctl_entry(
 
 	/* copy result to user */
 	if (copy_to_user(
-			(void __user *)arg, &entry_data->entry, _IOC_SIZE(cmd)))
+			(void __user *)arg, &entry, _IOC_SIZE(cmd)))
 		APRINT("ENTRY: failed to copy the result\n");
 
-	if (entry_rsp->ercd != R_VSPM_OK)
+	if (entry.rsp.ercd != R_VSPM_OK)
 		goto err_exit;
 
 	return 0;
@@ -661,7 +660,7 @@ static long vspm_ioctl_entry32(
 	/* for 64bit */
 	struct vspm_if_entry_data_t *entry_data;
 	struct vspm_if_entry_req_t *entry_req;
-	struct vspm_if_entry_rsp_t *entry_rsp;
+	struct vspm_if_entry_rsp_t entry_rsp;
 
 	/* for 32bit */
 	struct vspm_compat_entry_t compat_entry;
@@ -684,7 +683,6 @@ static long vspm_ioctl_entry32(
 	spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 	entry_req = &entry_data->entry.req;
-	entry_rsp = &entry_data->entry.rsp;
 
 	/* copy entry parameter */
 	if (copy_from_user(
@@ -743,23 +741,23 @@ static long vspm_ioctl_entry32(
 	}
 
 	/* entry job */
-	entry_rsp->ercd = vspm_entry_job(
+	entry_rsp.ercd = vspm_entry_job(
 		priv->handle,
-		&entry_rsp->job_id,
+		&entry_rsp.job_id,
 		entry_req->priority,
 		entry_req->job_param,
 		(void *)entry_data,
 		vspm_cb_func);
 
 	/* copy result to user */
-	compat_rsp->ercd = (int)entry_rsp->ercd;
-	compat_rsp->job_id = (unsigned int)entry_rsp->job_id;
+	compat_rsp->ercd = (int)entry_rsp.ercd;
+	compat_rsp->job_id = (unsigned int)entry_rsp.job_id;
 	if (copy_to_user(
 			(void __user *)arg, &compat_entry, _IOC_SIZE(cmd))) {
 		APRINT("ENTRY32: failed to copy the result\n");
 	}
 
-	if (entry_rsp->ercd != R_VSPM_OK)
+	if (entry_rsp.ercd != R_VSPM_OK)
 		goto err_exit;
 
 	return 0;
