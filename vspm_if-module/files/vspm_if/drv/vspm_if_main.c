@@ -169,13 +169,10 @@ static long vspm_ioctl_init(
 		break;
 	case R_VSPM_PARAERR:
 		return -EINVAL;
-		break;
 	case R_VSPM_ALREADY_USED:
 		return -EBUSY;
-		break;
 	default:
 		return -EFAULT;
-		break;
 	}
 
 	priv->handle = handle;
@@ -376,13 +373,10 @@ static long vspm_ioctl_cancel(
 		break;
 	case VSPM_STATUS_ACTIVE:
 		return -EBUSY;
-		break;
 	case VSPM_STATUS_NO_ENTRY:
 		return -ENOENT;
-		break;
 	default:
 		return -EFAULT;
-		break;
 	}
 
 	return 0;
@@ -421,10 +415,8 @@ static long vspm_ioctl_get_status(
 		break;
 	case R_VSPM_PARAERR:
 		return -EINVAL;
-		break;
 	default:
 		return -EFAULT;
-		break;
 	}
 
 	return 0;
@@ -641,13 +633,10 @@ static long vspm_ioctl_init32(
 		break;
 	case R_VSPM_PARAERR:
 		return -EINVAL;
-		break;
 	case R_VSPM_ALREADY_USED:
 		return -EBUSY;
-		break;
 	default:
 		return -EFAULT;
-		break;
 	}
 
 	priv->handle = handle;
@@ -819,10 +808,8 @@ static long vspm_ioctl_get_status32(
 		break;
 	case R_VSPM_PARAERR:
 		return -EINVAL;
-		break;
 	default:
 		return -EFAULT;
-		break;
 	}
 
 	return 0;
