@@ -1012,7 +1012,7 @@ static int vspm_if_init(void)
 	platform_driver_register(&vspm_if_driver);
 	if (g_vspmif_pdev == NULL) {
 		platform_driver_unregister(&vspm_if_driver);
-		return -ENOSYS;
+		return -ENODEV;
 	}
 
 	misc_register(&misc);
