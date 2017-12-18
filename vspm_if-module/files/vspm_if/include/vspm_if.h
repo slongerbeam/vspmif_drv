@@ -71,6 +71,7 @@ enum {
 	VSPM_CMD_WAIT_THREAD,
 	VSPM_CMD_STOP_THREAD,
 };
+
 #define VSPM_IOC_MAGIC 'v'
 
 /* for 64bit */
