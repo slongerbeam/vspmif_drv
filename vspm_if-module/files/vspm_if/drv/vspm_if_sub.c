@@ -228,7 +228,6 @@ static int set_vsp_src_clut_par(
 	return 0;
 }
 
-
 static int set_vsp_src_alpha_par(
 	struct vspm_entry_vsp_in_alpha *alpha, struct vsp_alpha_unit_t *src)
 {
@@ -315,7 +314,6 @@ static int set_vsp_src_par(
 	return 0;
 }
 
-
 static int set_vsp_dst_par(
 	struct vspm_entry_vsp_out *out, struct vsp_dst_t *src)
 {
@@ -342,7 +340,6 @@ static int set_vsp_dst_par(
 
 	return 0;
 }
-
 
 static int set_vsp_bru_par(
 	struct vspm_entry_vsp_bru *bru, struct vsp_bru_t *src)
@@ -614,7 +611,6 @@ static int set_vsp_ctrl_par(
 	return 0;
 }
 
-
 int free_vsp_par(struct vspm_entry_vsp *vsp)
 {
 	if (vsp->work_buff != NULL)
@@ -622,7 +618,6 @@ int free_vsp_par(struct vspm_entry_vsp *vsp)
 
 	return 0;
 }
-
 
 int set_vsp_par(
 	struct vspm_if_entry_data_t *entry, struct vsp_start_t *vsp_par)
@@ -763,7 +758,6 @@ static int set_fdp_ref_par(
 	return 0;
 }
 
-
 static int set_fdp_fproc_par(
 	struct vspm_entry_fdp_fproc *fproc, struct fdp_fproc_t *src)
 {
@@ -836,7 +830,6 @@ static int set_fdp_fproc_par(
 
 	return 0;
 }
-
 
 int set_fdp_par(
 	struct vspm_if_entry_data_t *entry, struct fdp_start_t *fdp_par)
@@ -1184,7 +1177,6 @@ static int set_compat_vsp_uds_par(struct vsp_uds_t *uds, unsigned int src)
 	return 0;
 }
 
-
 static int set_compat_vsp_lut_par(struct vsp_lut_t *lut, unsigned int src)
 {
 	struct compat_vsp_lut_t compat_lut;
@@ -1231,7 +1223,6 @@ static int set_compat_vsp_clu_par(struct vsp_clu_t *clu, unsigned int src)
 
 	return 0;
 }
-
 
 static int set_compat_vsp_hst_par(struct vsp_hst_t *hst, unsigned int src)
 {
@@ -1504,7 +1495,6 @@ static int set_compat_vsp_shp_par(struct vsp_shp_t *shp, unsigned int src)
 	return 0;
 }
 
-
 static int set_compat_vsp_ctrl_par(
 	struct vspm_entry_vsp_ctrl *ctrl,
 	unsigned int src,
@@ -1606,7 +1596,6 @@ static int set_compat_vsp_ctrl_par(
 
 	return 0;
 }
-
 
 int set_compat_vsp_par(
 	struct vspm_if_entry_data_t *entry, unsigned int src)
@@ -1852,7 +1841,6 @@ static int set_compat_fdp_fproc_par(
 
 	return 0;
 }
-
 
 int set_compat_fdp_par(
 	struct vspm_if_entry_data_t *entry, unsigned int src)
