@@ -198,9 +198,9 @@ static int set_vsp_src_clut_par(
 		return -EFAULT;
 	}
 
-	if ((clut->virt_addr) &&
-	    (clut->tbl_num > 0) &&
-	    (clut->tbl_num <= 256)) {
+	if (clut->virt_addr &&
+	    clut->tbl_num > 0 &&
+	    clut->tbl_num <= 256) {
 		tmp_addr =
 			(unsigned long)work_buff->virt_addr +
 			(unsigned long)work_buff->offset;
@@ -344,7 +344,7 @@ static int set_vsp_dst_par(
 static int set_vsp_bru_par(
 	struct vspm_entry_vsp_bru *bru, struct vsp_bru_t *src)
 {
-	struct vsp_bld_ctrl_t * *(src_blend[5]);
+	struct vsp_bld_ctrl_t **src_blend[5];
 	int i;
 
 	/* copy vsp_bru_t parameter */
@@ -725,7 +725,7 @@ void set_cb_rsp_vsp(
 static int set_fdp_ref_par(
 	struct vspm_entry_fdp_ref *ref, struct fdp_refbuf_t *src)
 {
-	struct fdp_imgbuf_t * *(src_refbuf[3]);
+	struct fdp_imgbuf_t **src_refbuf[3];
 	int i;
 
 	/* copy fdp_refbuf_t parameter */
@@ -874,9 +874,9 @@ static int set_compat_vsp_src_clut_par(
 		return -EFAULT;
 	}
 
-	if ((compat_dl_par.virt_addr != 0) &&
-	    (compat_dl_par.tbl_num > 0) &&
-	    (compat_dl_par.tbl_num <= 256)) {
+	if (compat_dl_par.virt_addr != 0 &&
+	    compat_dl_par.tbl_num > 0 &&
+	    compat_dl_par.tbl_num <= 256) {
 		tmp_addr =
 			(unsigned long)work_buff->virt_addr +
 			(unsigned long)work_buff->offset;
@@ -1292,7 +1292,7 @@ static int set_compat_vsp_bru_vir_par(
 static int set_compat_vsp_bru_par(
 	struct vspm_entry_vsp_bru *bru, unsigned int src)
 {
-	struct vsp_bld_ctrl_t * *(src_blend[5]);
+	struct vsp_bld_ctrl_t **src_blend[5];
 	struct compat_vsp_bru_t compat_bru;
 	int ercd;
 	int i;
