@@ -185,7 +185,7 @@ struct vspm_if_cb_data_t {
 
 /* private data structure */
 struct vspm_if_private_t {
-	spinlock_t lock;
+	spinlock_t lock;	/* protects the entry list and callback list */
 	struct task_struct *thread;
 	struct vspm_if_entry_data_t entry_data;
 	struct vspm_if_cb_data_t cb_data;
