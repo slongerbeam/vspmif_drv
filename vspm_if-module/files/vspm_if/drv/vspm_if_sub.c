@@ -199,8 +199,8 @@ static int set_vsp_src_clut_par(
 	}
 
 	if ((clut->virt_addr != NULL) &&
-		(clut->tbl_num > 0) &&
-		(clut->tbl_num <= 256)) {
+	    (clut->tbl_num > 0) &&
+	    (clut->tbl_num <= 256)) {
 		tmp_addr =
 			(unsigned long)work_buff->virt_addr +
 			(unsigned long)work_buff->offset;
@@ -875,8 +875,8 @@ static int set_compat_vsp_src_clut_par(
 	}
 
 	if ((compat_dl_par.virt_addr != 0) &&
-		(compat_dl_par.tbl_num > 0) &&
-		(compat_dl_par.tbl_num <= 256)) {
+	    (compat_dl_par.tbl_num > 0) &&
+	    (compat_dl_par.tbl_num <= 256)) {
 		tmp_addr =
 			(unsigned long)work_buff->virt_addr +
 			(unsigned long)work_buff->offset;
