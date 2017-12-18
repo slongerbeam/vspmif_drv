@@ -77,7 +77,7 @@ static int open(struct inode *inode, struct file *file)
 
 	/* allocate memory */
 	priv = kzalloc(sizeof(struct vspm_if_private_t), GFP_KERNEL);
-	if (priv == NULL)
+	if (!priv)
 		return -ENOMEM;
 
 	/* init */
@@ -97,8 +97,8 @@ static int close(struct inode *inode, struct file *file)
 	struct vspm_if_private_t *priv =
 		(struct vspm_if_private_t *)file->private_data;
 
-	if (priv != NULL) {
-		if (priv->handle != NULL) {
+	if (priv) {
+		if (priv->handle) {
 			(void)vspm_quit_driver(priv->handle);
 			priv->handle = NULL;
 		}
@@ -143,7 +143,7 @@ static long vspm_ioctl_init(
 		break;
 	case VSPM_TYPE_FDP_AUTO:
 		/* copy initialize parameter of FDP */
-		if (init_par.par.fdp != NULL) {
+		if (init_par.par.fdp) {
 			if (copy_from_user(
 					&init_fdp_par,
 					(void __user *)init_par.par.fdp,
@@ -202,7 +202,7 @@ static void vspm_cb_func(
 	struct vspm_if_cb_data_t *cb_data;
 	unsigned long lock_flag;
 
-	if (entry_data == NULL)
+	if (!entry_data)
 		return;
 
 	priv = entry_data->priv;
@@ -214,7 +214,7 @@ static void vspm_cb_func(
 
 	/* allocate callback data */
 	cb_data = kzalloc(sizeof(struct vspm_if_cb_data_t), GFP_ATOMIC);
-	if (cb_data == NULL) {
+	if (!cb_data) {
 		EPRINT("CB: failed to allocate memory\n");
 		/* release memory */
 		if (entry_data->job.type == VSPM_TYPE_VSP_AUTO)
@@ -256,7 +256,7 @@ static long vspm_ioctl_entry(
 
 	/* allocate entry data */
 	entry_data = kzalloc(sizeof(struct vspm_if_entry_data_t), GFP_KERNEL);
-	if (entry_data == NULL)
+	if (!entry_data)
 		return -ENOMEM;
 	entry_data->priv = priv;
 
@@ -277,7 +277,7 @@ static long vspm_ioctl_entry(
 
 	entry_req = &entry_data->entry.req;
 
-	if (entry_req->job_param != NULL) {
+	if (entry_req->job_param) {
 		/* copy job parameter */
 		if (copy_from_user(
 				&entry_data->job,
@@ -455,12 +455,12 @@ static long vspm_ioctl_wait_interrupt(
 		spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 		/* HGO result */
-		if (cb_data->vsp_hgo.virt_addr != NULL) {
+		if (cb_data->vsp_hgo.virt_addr) {
 			unsigned long tmp_addr =
 				(unsigned long)(cb_data->vsp_hgo.virt_addr);
 			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
-			if (cb_data->vsp_hgo.user_addr != NULL) {
+			if (cb_data->vsp_hgo.user_addr) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgo.user_addr,
 						(void *)(tmp_addr << 8),
@@ -471,12 +471,12 @@ static long vspm_ioctl_wait_interrupt(
 		}
 
 		/* HGT result */
-		if (cb_data->vsp_hgt.virt_addr != NULL) {
+		if (cb_data->vsp_hgt.virt_addr) {
 			unsigned long tmp_addr =
 				(unsigned long)(cb_data->vsp_hgt.virt_addr);
 			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
-			if (cb_data->vsp_hgt.user_addr != NULL) {
+			if (cb_data->vsp_hgt.user_addr) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgt.user_addr,
 						(void *)(tmp_addr << 8),
@@ -537,7 +537,7 @@ static long unlocked_ioctl(
 	long ercd = 0;
 
 	/* check parameter */
-	if (priv == NULL) {
+	if (!priv) {
 		EPRINT("IOCTL: invalid private data!!\n");
 		return -EFAULT;
 	}
@@ -658,7 +658,7 @@ static long vspm_ioctl_entry32(
 
 	/* allocate entry data */
 	entry_data = kzalloc(sizeof(struct vspm_if_entry_data_t), GFP_KERNEL);
-	if (entry_data == NULL)
+	if (!entry_data)
 		return -ENOMEM;
 	entry_data->priv = priv;
 
@@ -854,12 +854,12 @@ static long vspm_ioctl_wait_interrupt32(
 		spin_unlock_irqrestore(&priv->lock, lock_flag);
 
 		/* HGO result */
-		if (cb_data->vsp_hgo.virt_addr != NULL) {
+		if (cb_data->vsp_hgo.virt_addr) {
 			unsigned long tmp_addr =
 				(unsigned long)(cb_data->vsp_hgo.virt_addr);
 			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
-			if (cb_data->vsp_hgo.user_addr != NULL) {
+			if (cb_data->vsp_hgo.user_addr) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgo.user_addr,
 						(void *)(tmp_addr << 8),
@@ -871,12 +871,12 @@ static long vspm_ioctl_wait_interrupt32(
 		}
 
 		/* HGT result */
-		if (cb_data->vsp_hgt.virt_addr != NULL) {
+		if (cb_data->vsp_hgt.virt_addr) {
 			unsigned long tmp_addr =
 				(unsigned long)(cb_data->vsp_hgt.virt_addr);
 			tmp_addr = (tmp_addr + 255) >> 8;
 			/* copy to user area */
-			if (cb_data->vsp_hgt.user_addr != NULL) {
+			if (cb_data->vsp_hgt.user_addr) {
 				if (copy_to_user((void __user *)
 						cb_data->vsp_hgt.user_addr,
 						(void *)(tmp_addr << 8),
@@ -919,7 +919,7 @@ static long compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	long ercd = 0;
 
 	/* check parameter */
-	if (priv == NULL) {
+	if (!priv) {
 		EPRINT("IOCTL32: invalid private data!!\n");
 		return -EFAULT;
 	}
@@ -973,7 +973,7 @@ static struct miscdevice misc = {
 
 static int vspm_if_probe(struct platform_device *pdev)
 {
-	if (g_vspmif_pdev != NULL)
+	if (g_vspmif_pdev)
 		return -1;
 
 	g_vspmif_pdev = pdev;
@@ -1006,7 +1006,7 @@ static int vspm_if_init(void)
 	g_vspmif_pdev = NULL;
 
 	platform_driver_register(&vspm_if_driver);
-	if (g_vspmif_pdev == NULL) {
+	if (!g_vspmif_pdev) {
 		platform_driver_unregister(&vspm_if_driver);
 		return -ENODEV;
 	}

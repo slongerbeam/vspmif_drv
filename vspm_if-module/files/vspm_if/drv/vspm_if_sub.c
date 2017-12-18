@@ -109,7 +109,7 @@ struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
 
 	/* search unused work buffer */
 	cur_buff = priv->work_buff;
-	while (cur_buff != NULL) {
+	while (cur_buff) {
 		if (cur_buff->use_flag == 0) {
 			/* set work buffer */
 			cur_buff->use_flag = 1;
@@ -124,7 +124,7 @@ struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
 
 	/* allocate work buffer */
 	cur_buff = kzalloc(sizeof(struct vspm_if_work_buff_t), GFP_KERNEL);
-	if (cur_buff == NULL) {
+	if (!cur_buff) {
 		EPRINT("failed to allocate memory\n");
 		up(&priv->sem);
 		return NULL;
@@ -135,7 +135,7 @@ struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
 		VSPM_IF_MEM_SIZE,
 		&cur_buff->hard_addr,
 		GFP_KERNEL);
-	if (cur_buff->virt_addr == NULL) {
+	if (!cur_buff->virt_addr) {
 		EPRINT("failed to allocate work buffer\n");
 		kfree(cur_buff);
 		up(&priv->sem);
@@ -143,7 +143,7 @@ struct vspm_if_work_buff_t *get_work_buffer(struct vspm_if_private_t *priv)
 	}
 
 	/* connect work buffer */
-	if (prev_buff == NULL)
+	if (!prev_buff)
 		priv->work_buff = cur_buff;
 	else
 		prev_buff->next_buff = cur_buff;
@@ -164,7 +164,7 @@ void release_work_buffers(struct vspm_if_private_t *priv)
 	down(&priv->sem);
 
 	cur_buff = priv->work_buff;
-	while (cur_buff != NULL) {
+	while (cur_buff) {
 		next_buff = cur_buff->next_buff;
 
 		/* release work buffer */
@@ -198,7 +198,7 @@ static int set_vsp_src_clut_par(
 		return -EFAULT;
 	}
 
-	if ((clut->virt_addr != NULL) &&
+	if ((clut->virt_addr) &&
 	    (clut->tbl_num > 0) &&
 	    (clut->tbl_num <= 256)) {
 		tmp_addr =
@@ -613,7 +613,7 @@ static int set_vsp_ctrl_par(
 
 int free_vsp_par(struct vspm_entry_vsp *vsp)
 {
-	if (vsp->work_buff != NULL)
+	if (vsp->work_buff)
 		vsp->work_buff->use_flag = 0;
 
 	return 0;
@@ -642,7 +642,7 @@ int set_vsp_par(
 
 	/* get work buffer */
 	vsp->work_buff = get_work_buffer(entry->priv);
-	if (vsp->work_buff == NULL)
+	if (!vsp->work_buff)
 		return -EFAULT;
 
 	/* copy vsp_src_t parameter */
@@ -695,7 +695,7 @@ err_exit:
 
 int free_cb_vsp_par(struct vspm_if_cb_data_t *cb_data)
 {
-	if (cb_data->vsp_work_buff != NULL)
+	if (cb_data->vsp_work_buff)
 		cb_data->vsp_work_buff->use_flag = 0;
 
 	return 0;
@@ -1623,7 +1623,7 @@ int set_compat_vsp_par(
 
 	/* get work buffer */
 	vsp->work_buff = get_work_buffer(entry->priv);
-	if (vsp->work_buff == NULL)
+	if (!vsp->work_buff)
 		return -EFAULT;
 
 	/* copy vsp_src_t parameter */
